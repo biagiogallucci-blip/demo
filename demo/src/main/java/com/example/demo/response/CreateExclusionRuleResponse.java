@@ -1,17 +1,15 @@
-package com.example.demo.model;
+package com.example.demo.response;
 
 import java.math.BigInteger;
 import java.sql.Timestamp;
 
-public class ExclusionRulesDto {
-	
+public class CreateExclusionRuleResponse {
+
 	private BigInteger id;
 	private String name;
 	private String tag;
-	private Integer companiesCount;
-	private Boolean hasDraft;
 	private String status;
-	private String links;
+	private Integer companiesCount;
 	private Timestamp createdAt;
 	
 	public BigInteger getId() {
@@ -32,29 +30,17 @@ public class ExclusionRulesDto {
 	public void setTag(String tag) {
 		this.tag = tag;
 	}
-	public Integer getCompaniesCount() {
-		return companiesCount;
-	}
-	public void setCompaniesCount(Integer companiesCount) {
-		this.companiesCount = companiesCount;
-	}
-	public Boolean getHasDraft() {
-		return hasDraft;
-	}
-	public void setHasDraft(Boolean hasDraft) {
-		this.hasDraft = hasDraft;
-	}
 	public String getStatus() {
 		return status;
 	}
 	public void setStatus(String status) {
 		this.status = status;
 	}
-	public String getLinks() {
-		return links;
+	public Integer getCompaniesCount() {
+		return companiesCount;
 	}
-	public void setLinks(String links) {
-		this.links = links;
+	public void setCompaniesCount(Integer companiesCount) {
+		this.companiesCount = companiesCount;
 	}
 	public Timestamp getCreatedAt() {
 		return createdAt;

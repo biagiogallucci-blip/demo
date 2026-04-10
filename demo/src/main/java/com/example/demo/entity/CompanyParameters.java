@@ -3,12 +3,8 @@ package com.example.demo.entity;
 import java.io.Serializable;
 import java.math.BigInteger;
 
-import com.example.demo.utils.ActiveFlag;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -20,32 +16,31 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "COMPANY_CATEGORIES", schema = "XRBNPPUSR", uniqueConstraints = {
-		@UniqueConstraint(columnNames = { "COMPANY_ID", "CATEGORY_CODE" }) })
-public class CompanyCategories implements Serializable {
+@Table(name = "COMPANY_PARAMETERS", schema = "XRBNPPUSR", uniqueConstraints = {
+		@UniqueConstraint(columnNames = { "COMPANY_ID", "PARAMETER_CODE" }) })
+public class CompanyParameters implements Serializable {
 
 	private static final long serialVersionUID = 1L;
-
+	
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "company_categories_seq_gen")
-	@SequenceGenerator(name = "company_categories_seq_gen",
-			sequenceName = "XRBNPPUSR.COMPANY_CATEGORIES_SEQ", 
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "company_parameters_seq_gen")
+	@SequenceGenerator(name = "company_parameters_seq_gen",
+			sequenceName = "XRBNPPUSR.COMPANY_PARAMETERS_SEQ", 
 			allocationSize = 1
 	)
 	@Column(name = "ID")
 	private BigInteger id;
-
+	
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "COMPANY_ID")
 	private Company company;
-
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "CATEGORY_CODE")
-	private Categories category;
 	
-	@Enumerated(EnumType.STRING)
-    @Column(name = "IS_ENABLED", nullable = false, length = 1)
-    private ActiveFlag isEnabled;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "PARAMETER_CODE")
+	private CustomizationParameters parameterCode;
+	
+	@Column(name = "PARAMETER_VALUE")
+	private String parameterValue;
 
 	public BigInteger getId() {
 		return id;
@@ -63,19 +58,19 @@ public class CompanyCategories implements Serializable {
 		this.company = company;
 	}
 
-	public Categories getCategory() {
-		return category;
+	public CustomizationParameters getParameterCode() {
+		return parameterCode;
 	}
 
-	public void setCategory(Categories category) {
-		this.category = category;
+	public void setParameterCode(CustomizationParameters parameterCode) {
+		this.parameterCode = parameterCode;
 	}
 
-	public ActiveFlag getIsEnabled() {
-		return isEnabled;
+	public String getParameterValue() {
+		return parameterValue;
 	}
 
-	public void setIsEnabled(ActiveFlag isEnabled) {
-		this.isEnabled = isEnabled;
+	public void setParameterValue(String parameterValue) {
+		this.parameterValue = parameterValue;
 	}
 }

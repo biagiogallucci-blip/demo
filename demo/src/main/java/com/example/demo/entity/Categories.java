@@ -1,7 +1,8 @@
 package com.example.demo.entity;
 
 import java.io.Serializable;
-import java.time.LocalDate;
+import java.math.BigInteger;
+import java.sql.Timestamp;
 
 import com.example.demo.utils.ActiveFlag;
 
@@ -27,13 +28,16 @@ public class Categories implements Serializable {
     private ActiveFlag active;
 
     @Column(name = "CREATION", nullable = false)
-    private LocalDate creation;
+    private Timestamp creation;
 
     @Column(name = "LAST_DEACTIVATION")
-    private LocalDate lastDeactivation;
+    private Timestamp lastDeactivation;
 
     @Column(name = "NAME")
     private String name;
+    
+    @Column(name = "ID", updatable = false, nullable = false)
+    private BigInteger id;
 
 	public String getCode() {
 		return code;
@@ -51,19 +55,19 @@ public class Categories implements Serializable {
 		this.active = active;
 	}
 
-	public LocalDate getCreation() {
+	public Timestamp getCreation() {
 		return creation;
 	}
 
-	public void setCreation(LocalDate creation) {
+	public void setCreation(Timestamp creation) {
 		this.creation = creation;
 	}
 
-	public LocalDate getLastDeactivation() {
+	public Timestamp getLastDeactivation() {
 		return lastDeactivation;
 	}
 
-	public void setLastDeactivation(LocalDate lastDeactivation) {
+	public void setLastDeactivation(Timestamp lastDeactivation) {
 		this.lastDeactivation = lastDeactivation;
 	}
 
@@ -73,5 +77,13 @@ public class Categories implements Serializable {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public BigInteger getId() {
+		return id;
+	}
+
+	public void setId(BigInteger id) {
+		this.id = id;
 	}
 }

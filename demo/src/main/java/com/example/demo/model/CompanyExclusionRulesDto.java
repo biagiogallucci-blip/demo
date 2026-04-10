@@ -1,18 +1,16 @@
 package com.example.demo.model;
 
 import java.math.BigInteger;
-import java.sql.Timestamp;
 
-public class ExclusionRulesDto {
+public class CompanyExclusionRulesDto {
 	
 	private BigInteger id;
 	private String name;
 	private String tag;
-	private Integer companiesCount;
+	private Boolean isEnabled;
 	private Boolean hasDraft;
 	private String status;
-	private String links;
-	private Timestamp createdAt;
+	private DraftExclusionRules draft;
 	
 	public BigInteger getId() {
 		return id;
@@ -32,11 +30,11 @@ public class ExclusionRulesDto {
 	public void setTag(String tag) {
 		this.tag = tag;
 	}
-	public Integer getCompaniesCount() {
-		return companiesCount;
+	public Boolean getIsEnabled() {
+		return isEnabled;
 	}
-	public void setCompaniesCount(Integer companiesCount) {
-		this.companiesCount = companiesCount;
+	public void setIsEnabled(Boolean isEnabled) {
+		this.isEnabled = isEnabled;
 	}
 	public Boolean getHasDraft() {
 		return hasDraft;
@@ -50,16 +48,10 @@ public class ExclusionRulesDto {
 	public void setStatus(String status) {
 		this.status = status;
 	}
-	public String getLinks() {
-		return links;
+	public DraftExclusionRules getDraft() {
+		return draft;
 	}
-	public void setLinks(String links) {
-		this.links = links;
-	}
-	public Timestamp getCreatedAt() {
-		return createdAt;
-	}
-	public void setCreatedAt(Timestamp createdAt) {
-		this.createdAt = createdAt;
+	public void setDraft(DraftExclusionRules draft) {
+		this.draft = draft;
 	}
 }

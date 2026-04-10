@@ -17,19 +17,17 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "COMPANY_CATEGORIES", schema = "XRBNPPUSR", uniqueConstraints = {
-		@UniqueConstraint(columnNames = { "COMPANY_ID", "CATEGORY_CODE" }) })
-public class CompanyCategories implements Serializable {
+@Table(name = "COMPANY_CATEGORIES_PREVIEW", schema = "XRBNPPUSR")
+public class CompanyCategoriesPreview implements Serializable {
 
 	private static final long serialVersionUID = 1L;
-
+	
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "company_categories_seq_gen")
-	@SequenceGenerator(name = "company_categories_seq_gen",
-			sequenceName = "XRBNPPUSR.COMPANY_CATEGORIES_SEQ", 
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "company_categories_preview_seq_gen")
+	@SequenceGenerator(name = "company_categories_preview_seq_gen",
+			sequenceName = "XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW_SEQ", 
 			allocationSize = 1
 	)
 	@Column(name = "ID")
