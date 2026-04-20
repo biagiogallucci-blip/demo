@@ -41,7 +41,7 @@ public class CustomParametersController {
 	@PostMapping
 	public CreateCustomParametersResponse createCustomParameters(
 			@RequestBody CreateCustomParametersRequest createCustomParametersRequest) {
-		return parametersService.createExclusionRule(createCustomParametersRequest);
+		return parametersService.createCustomParameter(createCustomParametersRequest);
 	}
 	
 	@GetMapping("/{paramId}")
