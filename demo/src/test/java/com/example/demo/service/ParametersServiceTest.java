@@ -116,7 +116,7 @@ class ParametersServiceTest {
                 .thenReturn(BigInteger.ONE);
 
         CreateCustomParametersResponse response =
-                service.createExclusionRule(request);
+                service.createCustomParameter(request);
 
         verify(customizationParametersRepository).saveAndFlush(any());
         assertEquals(0, response.getCompaniesCount());
@@ -140,7 +140,7 @@ class ParametersServiceTest {
         when(companyRepository.findAll()).thenReturn(List.of(company));
 
         CreateCustomParametersResponse response =
-                service.createExclusionRule(request);
+                service.createCustomParameter(request);
 
         verify(companyParametersRepository).save(any());
         verify(companyParametersPreviewRepository).save(any());
@@ -157,7 +157,7 @@ class ParametersServiceTest {
                 .thenReturn(Optional.of(new CustomizationParameters()));
 
         assertThrows(CustomParametersAlreadyExistException.class,
-                () -> service.createExclusionRule(request));
+                () -> service.createCustomParameter(request));
     }
 
     @Test
