@@ -46,12 +46,15 @@ public interface CompanyCategoriesRepository extends JpaRepository<CompanyCatego
 
 	Optional<CompanyCategories> findByCompanyAndCategory(Company company, Categories category);
 
-	@Query("SELECT comp.idCompany AS companyId, comp.nameCompany AS companyName, comp.codeCompany AS companyCode, cc.isEnabled AS isEnabled,(SELECT MAX"
-			+ "(cp.isEnabled) FROM CompanyCategoriesPreview cp WHERE cp.company.idCompany = comp.idCompany AND cp.category.code = c.code AND cp.isEnabled "
-			+ "<> cc.isEnabled) AS draftIsEnabled FROM CompanyCategories cc JOIN cc.company comp JOIN cc.category c WHERE c.id = :ruleId AND (:search IS NULL "
-			+ "OR LOWER(comp.nameCompany) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(comp.codeCompany) LIKE LOWER(CONCAT('%', :search, '%')))")
-	Page<CompaniesByExclusionRuleProjection> getCompaniesByExclusionRuleId(@Param("ruleId") BigInteger ruleId,
-			@Param("search") String search, Pageable pageable);
+	@Query(value = "SELECT comp.idCompany AS companyId, comp.nameCompany AS companyName, comp.codeCompany AS companyCode, cc.isEnabled "
+			+ "AS isEnabled, (SELECT MAX(cp.isEnabled) FROM CompanyCategoriesPreview cp WHERE cp.company.idCompany = comp.idCompany "
+			+ "AND cp.category.code = c.code AND cp.isEnabled <> cc.isEnabled) AS draftIsEnabled FROM CompanyCategories cc JOIN cc.company comp "
+	        + "JOIN cc.category c WHERE c.id = :ruleId AND (:search IS NULL OR LOWER(comp.nameCompany) LIKE LOWER(CONCAT('%', :search, '%')) "
+	        + "OR LOWER(comp.codeCompany) LIKE LOWER(CONCAT('%', :search, '%')))",
+	       countQuery = "SELECT COUNT(cc) FROM CompanyCategories cc JOIN cc.company comp JOIN cc.category c WHERE c.id = :ruleId "
+	       		+ "AND (:search IS NULL OR LOWER(comp.nameCompany) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(comp.codeCompany) LIKE LOWER(CONCAT('%', :search, '%')))")
+	Page<CompaniesByExclusionRuleProjection> getCompaniesByExclusionRuleId(@Param("ruleId") BigInteger ruleId, @Param("search") String search, 
+	        Pageable pageable);
 	
 	@Query("SELECT cc.company AS company, cc.isEnabled AS isEnabled FROM CompanyCategories cc JOIN cc.category c WHERE c.id = :oldCategoryId")
 		List<CloneExclusionRuleProjection> findForCloneExclusionRule(@Param("oldCategoryId") BigInteger oldCategoryId);

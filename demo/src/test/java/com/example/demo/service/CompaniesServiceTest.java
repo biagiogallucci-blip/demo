@@ -111,7 +111,6 @@ class CompaniesServiceTest {
         when(projection.getCodeCompany()).thenReturn("Code");
         when(projection.getHasParameters()).thenReturn(true);
         when(projection.getHasCategory()).thenReturn(true);
-        when(projection.getStatus()).thenReturn("ACTIVE");
 
         when(page.getContent()).thenReturn(List.of(projection));
         when(page.getTotalPages()).thenReturn(1);
@@ -158,7 +157,7 @@ class CompaniesServiceTest {
         customizationParameters.setDescription("DESC");
 
         CompanyParameters parameter = new CompanyParameters();
-        parameter.setParameterCode(customizationParameters);
+        parameter.setCustomizationParameters(customizationParameters);
         parameter.setParameterValue("VAL");
 
         when(companyParametersRepository.findParametersByCompanyId(sourceCompanyId))
@@ -243,7 +242,7 @@ class CompaniesServiceTest {
 
         when(preview.getParameterValue()).thenReturn("OLD");
         when(preview.getCompany()).thenReturn(mock(Company.class));
-        when(preview.getParameterCode()).thenReturn(mock(CustomizationParameters.class));
+        when(preview.getCustomizationParameters()).thenReturn(mock(CustomizationParameters.class));
 
         when(companyParametersPreviewRepository.countByCompanyAndCustomizationParameters(any(), any()))
                 .thenReturn(1);
@@ -264,7 +263,7 @@ class CompaniesServiceTest {
                 .thenReturn(Optional.of(preview));
 
         when(preview.getCompany()).thenReturn(mock(Company.class));
-        when(preview.getParameterCode()).thenReturn(mock(CustomizationParameters.class));
+        when(preview.getCustomizationParameters()).thenReturn(mock(CustomizationParameters.class));
         when(preview.getParameterValue()).thenReturn("VAL");
 
         CompanyParameters parameter = new CompanyParameters();

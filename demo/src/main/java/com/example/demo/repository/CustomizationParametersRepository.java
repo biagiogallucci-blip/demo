@@ -23,25 +23,29 @@ public interface CustomizationParametersRepository extends JpaRepository<Customi
 	@Query(value = "SELECT XRBNPPUSR.CUSTOMIZATION_PARAMETERS_SEQ.NEXTVAL FROM dual", nativeQuery = true)
 	BigInteger getNextId();
 
-	@Query("SELECT cp.code AS code, cp.description AS description, COUNT(DISTINCT cpar.company.id) AS companiesCount, SUM( CASE  WHEN cpp.parameterValue "
-			+ "IS NOT NULL AND cpp.parameterValue <> cpar.parameterValue THEN 1  ELSE 0 END ) AS draftCount FROM CustomizationParameters cp LEFT JOIN "
-			+ "CompanyParameters cpar ON cp.code = cpar.customizationParameters.code LEFT JOIN CompanyParametersPreview cpp ON cpp.customizationParameters.code = "
-			+ "cpar.customizationParameters.code AND cpp.company.id = cpar.company.id WHERE (:search IS NULL OR LOWER(cp.description) LIKE LOWER(CONCAT('%', :search, '%')) "
-			+ "OR LOWER(cp.code) LIKE LOWER(CONCAT('%', :search, '%'))) GROUP BY cp.code, cp.description HAVING  (:status = 'ALL' OR (:status = 'DRAFT' AND  SUM(CASE "
-			+ "WHEN cpp.parameterValue IS NOT NULL AND cpp.parameterValue <> cpar.parameterValue THEN 1 ELSE 0 END) > 0) OR (:status = 'PUBLISHED' AND "
-			+ "SUM(CASE WHEN cpp.parameterValue IS NOT NULL AND cpp.parameterValue <> cpar.parameterValue THEN 1 ELSE 0 END) = 0))")
-	Page<CustomParameterListProjection> getCustomParameters(@Param("search") String search,
-			@Param("status") String status, Pageable pageable);
+	@Query(value = "SELECT cp.code AS code, cp.description AS description, COUNT(DISTINCT cpar.company.id) AS companiesCount, SUM(CASE WHEN cpp.parameterValue "
+			+ "IS NOT NULL AND cpp.parameterValue <> cpar.parameterValue THEN 1 ELSE 0 END) AS draftCount FROM CustomizationParameters cp LEFT JOIN CompanyParameters "
+			+ "cpar ON cp.code = cpar.customizationParameters.code LEFT JOIN CompanyParametersPreview cpp ON cpp.customizationParameters.code = cpar.customizationParameters.code "
+			+ "AND cpp.company.id = cpar.company.id WHERE (:search IS NULL OR LOWER(cp.description) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(cp.code) LIKE "
+			+ "LOWER(CONCAT('%', :search, '%'))) GROUP BY cp.code, cp.description HAVING (:status = 'ALL' OR (:status = 'DRAFT' AND SUM(CASE WHEN cpp.parameterValue "
+			+ "IS NOT NULL AND cpp.parameterValue <> cpar.parameterValue THEN 1 ELSE 0 END) > 0) OR (:status = 'PUBLISHED' AND SUM(CASE WHEN cpp.parameterValue "
+			+ "IS NOT NULL AND cpp.parameterValue <> cpar.parameterValue THEN 1 ELSE 0 END) = 0))",
+	       countQuery = "SELECT COUNT(DISTINCT cp.code) FROM CustomizationParameters cp LEFT JOIN CompanyParameters cpar ON cp.code = cpar.customizationParameters.code "
+	        + "LEFT JOIN CompanyParametersPreview cpp ON cpp.customizationParameters.code = cpar.customizationParameters.code AND cpp.company.id = cpar.company.id WHERE "
+	        + "(:search IS NULL OR LOWER(cp.description) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(cp.code) LIKE LOWER(CONCAT('%', :search, '%'))) GROUP BY cp.code " 
+	        + "HAVING (:status = 'ALL' OR (:status = 'DRAFT' AND SUM(CASE WHEN cpp.parameterValue IS NOT NULL AND cpp.parameterValue <> cpar.parameterValue THEN 1 ELSE 0 "
+	        + "END) > 0) OR (:status = 'PUBLISHED' AND SUM(CASE WHEN cpp.parameterValue IS NOT NULL AND cpp.parameterValue <> cpar.parameterValue THEN 1 ELSE 0 END) = 0))")
+	Page<CustomParameterListProjection> getCustomParameters(@Param("search") String search, @Param("status") String status, Pageable pageable);
 
 	Optional<CustomizationParameters> findById(BigInteger id);
 
-	@Query("SELECT c.idCompany AS companyId, c.nameCompany AS companyName, c.codeCompany AS companyCode, cp.parameterValue AS publishedValue, (SELECT "
-			+ "MAX(cpp.parameterValue) FROM CompanyParametersPreview cpp WHERE cpp.company = c AND cpp.customizationParameters.id = :paramId AND "
-			+ "cpp.parameterValue <> cp.parameterValue) AS previewValue FROM Company c JOIN CompanyParameters cp ON cp.company = c AND "
-			+ "cp.customizationParameters.id = :paramId WHERE (:search IS NULL OR LOWER(c.nameCompany) LIKE LOWER(CONCAT('%', :search, '%')) OR "
-			+ "LOWER(c.codeCompany) LIKE LOWER(CONCAT('%', :search, '%')))")
-	Page<CompaniesWithCustomParameterProjection> getCompaniesWithCustomParameter(@Param("paramId") BigInteger paramId, @Param("search")String search,
-			PageRequest pageRequest);
+	@Query(value = "SELECT c.idCompany AS companyId, c.nameCompany AS companyName, c.codeCompany AS companyCode, cp.parameterValue AS publishedValue, "
+			+ "(SELECT MAX(cpp.parameterValue) FROM CompanyParametersPreview cpp WHERE cpp.company = c AND cpp.customizationParameters.id = :paramId "
+			+ "AND cpp.parameterValue <> cp.parameterValue) AS previewValue FROM Company c JOIN CompanyParameters cp ON cp.company = c AND cp.customizationParameters.id = :paramId "
+	        + "WHERE (:search IS NULL OR LOWER(c.nameCompany) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(c.codeCompany) LIKE LOWER(CONCAT('%', :search, '%')))",
+	       countQuery = "SELECT COUNT(c) FROM Company c JOIN CompanyParameters cp ON cp.company = c AND cp.customizationParameters.id = :paramId WHERE (:search IS NULL "
+	       		+ "OR LOWER(c.nameCompany) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(c.codeCompany) LIKE LOWER(CONCAT('%', :search, '%')))")
+	Page<CompaniesWithCustomParameterProjection> getCompaniesWithCustomParameter(@Param("paramId") BigInteger paramId, @Param("search") String search, Pageable pageable); 
 
 	@Query(value = "SELECT c.ID_COMPANY AS id, c.NAME_COMPANY AS name, c.CODE_COMPANY AS code FROM XRBNPPUSR.COMPANY c WHERE NOT EXISTS (SELECT 1 "
 			+ "FROM XRBNPPUSR.COMPANY_PARAMETERS cp JOIN XRBNPPUSR.CUSTOMIZATION_PARAMETERS p ON p.CODE = cp.PARAMETER_CODE WHERE cp.COMPANY_ID = c.ID_COMPANY "

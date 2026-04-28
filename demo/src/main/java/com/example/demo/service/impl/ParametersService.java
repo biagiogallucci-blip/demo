@@ -142,13 +142,13 @@ public class ParametersService implements IParametersService {
 			for (Company company : companies) {
 				CompanyParameters entity = new CompanyParameters();
 				entity.setCompany(company);
-				entity.setParameterCode(customParameter);
+				entity.setCustomizationParameters(customParameter);
 				entity.setParameterValue(createCustomParametersRequest.getValue());
 				companyParametersRepository.save(entity);
 				
 				CompanyParametersPreview entityPreview = new CompanyParametersPreview();
 				entityPreview.setCompany(company);
-				entityPreview.setParameterCode(customParameter);
+				entityPreview.setCustomizationParameters(customParameter);
 				entityPreview.setParameterValue(createCustomParametersRequest.getValue());
 				companyParametersPreviewRepository.save(entityPreview);
 				
@@ -270,14 +270,14 @@ public class ParametersService implements IParametersService {
 
 		CompanyParameters cp = new CompanyParameters();
 		cp.setCompany(company);
-		cp.setParameterCode(param);
+		cp.setCustomizationParameters(param);
 		cp.setParameterValue(saveCustomParametersForCompanyRequest.getValue());
 
 		companyParametersRepository.save(cp);
 
 		CompanyParametersPreview cpp = new CompanyParametersPreview();
 		cpp.setCompany(company);
-		cpp.setParameterCode(param);
+		cpp.setCustomizationParameters(param);
 		cpp.setParameterValue(saveCustomParametersForCompanyRequest.getValue());
 
 		companyParametersPreviewRepository.save(cpp);
@@ -319,7 +319,7 @@ public class ParametersService implements IParametersService {
 	    } else {
 	        CompanyParametersPreview draft = new CompanyParametersPreview();
 	        draft.setCompany(company);
-	        draft.setParameterCode(param);
+	        draft.setCustomizationParameters(param);
 	        draft.setParameterValue(value);
 	        companyParametersPreviewRepository.save(draft);
 	    }

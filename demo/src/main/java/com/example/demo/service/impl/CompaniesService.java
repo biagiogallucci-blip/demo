@@ -161,7 +161,11 @@ public class CompaniesService implements ICompaniesService {
            configuration.setHasExclusionRules(company.getHasCategory());
 
             companyDto.setConfiguration(configuration);
-            companyDto.setStatus(company.getStatus());
+            if(Boolean.TRUE.equals(company.getHasCategory())) {
+            	companyDto.setStatus(Constants.DRAFT);
+            } else {
+            	companyDto.setStatus(Constants.PUBLISHED);
+            }
 
             Actions actions = new Actions();
             actions.setDetailUrl("/api/v1/companies/".concat(String.valueOf(company.getIdCompany())));
@@ -294,15 +298,15 @@ public class CompaniesService implements ICompaniesService {
 
 		if (!createDraftRequest.getValue().equals(companyParameters.getParameterValue())) {
 			if (companyParametersPreviewRepository.countByCompanyAndCustomizationParameters(
-					companyParameters.getCompany(), companyParameters.getParameterCode()) == 1) {
+					companyParameters.getCompany(), companyParameters.getCustomizationParameters()) == 1) {
 				CompanyParametersPreview newDraft = new CompanyParametersPreview();
 				newDraft.setCompany(companyParameters.getCompany());
-				newDraft.setParameterCode(companyParameters.getParameterCode());
+				newDraft.setCustomizationParameters(companyParameters.getCustomizationParameters());
 				newDraft.setParameterValue(createDraftRequest.getValue());
 				companyParametersPreviewRepository.save(newDraft);
 			} else if (Boolean.TRUE.equals(companyParametersPreviewRepository
 					.existsByCompanyAndCustomizationParametersAndParameterValue(companyParameters.getCompany(),
-							companyParameters.getParameterCode(), createDraftRequest.getValue()))) {
+							companyParameters.getCustomizationParameters(), createDraftRequest.getValue()))) {
 				companyParametersPreviewRepository.deleteById(paramId);
 			} else {
 				companyParameters.setParameterValue(createDraftRequest.getValue());
@@ -317,14 +321,14 @@ public class CompaniesService implements ICompaniesService {
 		CompanyParametersPreview companyParametersPreviewToPublish = companyParametersPreviewRepository.findById(paramId)
 				.orElseThrow(() -> new CompanyParametersPreviewNotFoundException(paramId));
 		
-		Optional<CompanyParameters> companyParameters = companyParametersRepository.findByCompanyAndCustomizationParameters(companyParametersPreviewToPublish.getCompany(), companyParametersPreviewToPublish.getParameterCode());
+		Optional<CompanyParameters> companyParameters = companyParametersRepository.findByCompanyAndCustomizationParameters(companyParametersPreviewToPublish.getCompany(), companyParametersPreviewToPublish.getCustomizationParameters());
 		
 		if(companyParameters.isPresent()) {
 			companyParameters.get().setParameterValue(companyParametersPreviewToPublish.getParameterValue());
 			companyParametersRepository.save(companyParameters.get());
 		}
 		
-		Optional<CompanyParametersPreview> oldPublished = companyParametersPreviewRepository.findByCompanyAndCustomizationParametersAndIdNot(companyParametersPreviewToPublish.getCompany(), companyParametersPreviewToPublish.getParameterCode(), paramId);
+		Optional<CompanyParametersPreview> oldPublished = companyParametersPreviewRepository.findByCompanyAndCustomizationParametersAndIdNot(companyParametersPreviewToPublish.getCompany(), companyParametersPreviewToPublish.getCustomizationParameters(), paramId);
 		if(oldPublished.isPresent()) {
 			companyParametersPreviewRepository.delete(oldPublished.get());
 		}
@@ -344,13 +348,13 @@ public class CompaniesService implements ICompaniesService {
 		for(CompanyParameters parameterToCopy : parametersToCopy) {
 			CompanyParameters companyParameter = new CompanyParameters();
 			companyParameter.setCompany(company);
-			companyParameter.setParameterCode(parameterToCopy.getParameterCode());
+			companyParameter.setCustomizationParameters(parameterToCopy.getCustomizationParameters());
 			companyParameter.setParameterValue(parameterToCopy.getParameterValue());
 			companyParametersRepository.save(companyParameter);
 			
 			CompanyParametersPreview companyParameterPreview = new CompanyParametersPreview();
 			companyParameterPreview.setCompany(company);
-			companyParameterPreview.setParameterCode(parameterToCopy.getParameterCode());
+			companyParameterPreview.setCustomizationParameters(parameterToCopy.getCustomizationParameters());
 			companyParameterPreview.setParameterValue(parameterToCopy.getParameterValue());
 			companyParametersPreviewRepository.save(companyParameterPreview);
 		}
@@ -394,21 +398,21 @@ public class CompaniesService implements ICompaniesService {
 		
 		CompanyParameters companyParameters = new CompanyParameters();
 		companyParameters.setCompany(company);
-		companyParameters.setParameterCode(customParameter);
+		companyParameters.setCustomizationParameters(customParameter);
 		companyParameters.setParameterValue(addCustomParametersRequest.getValue());
 		companyParametersRepository.save(companyParameters);
 		
 		CompanyParametersPreview companyParameterPreview = new CompanyParametersPreview();
 		companyParameterPreview.setCompany(company);
-		companyParameterPreview.setParameterCode(customParameter);
+		companyParameterPreview.setCustomizationParameters(customParameter);
 		companyParameterPreview.setParameterValue(addCustomParametersRequest.getValue());
 		companyParametersPreviewRepository.save(companyParameterPreview);
 		
 		CompanyParameterDto dto = new CompanyParameterDto();
 		dto.setId(companyParameters.getId());
-		dto.setTitle(companyParameters.getParameterCode().getDescription());
-		dto.setCode(companyParameters.getParameterCode().getCode());
-		dto.setVariableName(Constants.PREFIX_VARIABLE.concat(companyParameters.getParameterCode().getCode().concat(Constants.SUFFIX_VARIABLE)));
+		dto.setTitle(companyParameters.getCustomizationParameters().getDescription());
+		dto.setCode(companyParameters.getCustomizationParameters().getCode());
+		dto.setVariableName(Constants.PREFIX_VARIABLE.concat(companyParameters.getCustomizationParameters().getCode().concat(Constants.SUFFIX_VARIABLE)));
 		dto.setValue(companyParameters.getParameterValue());
 		dto.setHasDraft(Boolean.FALSE);
 		dto.setStatus(Constants.PUBLISHED);

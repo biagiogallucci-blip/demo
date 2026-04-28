@@ -9,6 +9,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.example.demo.authprofiles.ErrorResponse;
+import com.example.demo.authprofiles.ValidationException;
+
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
@@ -129,4 +132,16 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
 	}
+	
+	@ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(ValidationException ex) {
+
+        ErrorResponse response = new ErrorResponse(
+            "ValidationError",
+            ex.getMessage(),
+            ex.getDetails()
+        );
+
+        return ResponseEntity.badRequest().body(response);
+    }
 }

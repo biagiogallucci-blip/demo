@@ -17,11 +17,13 @@ import com.example.demo.projection.CompanyProjection;
 @Repository
 public interface CompanyRepository extends JpaRepository<Company, BigInteger> {
 
-	@Query("SELECT c.idCompany AS idCompany, c.codeCompany AS codeCompany, c.nameCompany AS nameCompany, c.status AS status, "
-			+ "CASE WHEN EXISTS (SELECT 1 FROM CompanyCategories cc WHERE cc.company.idCompany = c.idCompany) THEN true ELSE false END AS hasCategory, "
-			+ "CASE WHEN EXISTS (SELECT 1 FROM CompanyParameters cp WHERE cp.company.idCompany = c.idCompany) THEN true ELSE false END AS hasParameters "
-			+ "FROM Company c WHERE (:search IS NULL OR :search = '' OR LOWER(c.nameCompany) LIKE LOWER(CONCAT('%', :search, '%')) OR "
-			+ "LOWER(c.codeCompany) LIKE LOWER(CONCAT('%', :search, '%')))")
+	@Query(value = "SELECT c.idCompany AS idCompany, c.codeCompany AS codeCompany, c.nameCompany AS nameCompany, c.status AS status, "
+	        + "CASE WHEN EXISTS (SELECT 1 FROM CompanyCategories cc WHERE cc.company.idCompany = c.idCompany) THEN true ELSE false END AS hasCategory, "
+	        + "CASE WHEN EXISTS (SELECT 1 FROM CompanyParameters cp WHERE cp.company.idCompany = c.idCompany) THEN true ELSE false END AS hasParameters "
+	        + "FROM Company c WHERE (:search IS NULL OR :search = '' OR LOWER(c.nameCompany) LIKE LOWER(CONCAT('%', :search, '%')) OR "
+	        + "LOWER(c.codeCompany) LIKE LOWER(CONCAT('%', :search, '%')))",
+	       countQuery = "SELECT COUNT(c) FROM Company c WHERE (:search IS NULL OR :search = '' OR LOWER(c.nameCompany) LIKE LOWER(CONCAT('%', :search, '%')) OR "
+	        + "LOWER(c.codeCompany) LIKE LOWER(CONCAT('%', :search, '%')))")
 	Page<CompanyProjection> searchCompanies(@Param("search") String search, Pageable pageable);
 
 	@Query(value = "SELECT c.ID_COMPANY as id, c.name_company AS name, c.code_company AS code, (SELECT COUNT(*) FROM XRBNPPUSR.COMPANY_CATEGORIES cc "

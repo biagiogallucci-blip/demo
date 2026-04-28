@@ -37,7 +37,7 @@ public class CompanyParameters implements Serializable {
 	
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "PARAMETER_CODE")
-	private CustomizationParameters parameterCode;
+	private CustomizationParameters customizationParameters;
 	
 	@Column(name = "PARAMETER_VALUE")
 	private String parameterValue;
@@ -58,19 +58,19 @@ public class CompanyParameters implements Serializable {
 		this.company = company;
 	}
 
-	public CustomizationParameters getParameterCode() {
-		return parameterCode;
-	}
-
-	public void setParameterCode(CustomizationParameters parameterCode) {
-		this.parameterCode = parameterCode;
-	}
-
 	public String getParameterValue() {
 		return parameterValue;
 	}
 
 	public void setParameterValue(String parameterValue) {
 		this.parameterValue = parameterValue;
+	}
+
+	public CustomizationParameters getCustomizationParameters() {
+		return customizationParameters;
+	}
+
+	public void setCustomizationParameters(CustomizationParameters customizationParameters) {
+		this.customizationParameters = customizationParameters;
 	}
 }
