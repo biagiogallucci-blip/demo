@@ -14,8 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.demo.entity.Categories;
 import com.example.demo.entity.Company;
 import com.example.demo.entity.CompanyCategoriesPreview;
-import com.example.demo.projection.PublishExclusionRuleProjection;
-import com.example.demo.utils.ActiveFlag;
 
 @Repository
 public interface CompanyCategoriesPreviewRepository extends JpaRepository<CompanyCategoriesPreview, BigInteger>{
@@ -27,11 +25,20 @@ public interface CompanyCategoriesPreviewRepository extends JpaRepository<Compan
 	
 	Optional<CompanyCategoriesPreview> findByCompanyAndCategoryAndIdNot(Company company, Categories category,BigInteger id);
 	
-	Boolean existsByCompanyAndCategoryAndIsEnabled(Company company, Categories category, ActiveFlag isEnabled);
+	@Query("SELECT ccp FROM CompanyCategoriesPreview ccp WHERE ccp.company.idCompany = :idCompany AND ccp.category.id = :categoryId") 
+	Optional<CompanyCategoriesPreview> findByCompanyIdAndCategoryId(@Param("idCompany") BigInteger idCompany, @Param("categoryId") BigInteger categoryId);
 	
-	@Query("SELECT cc.company.id AS companyId, ccp.id AS companyCategoriesPreviewId FROM CompanyCategories cc JOIN cc.category c JOIN CompanyCategoriesPreview ccp "
-			+ "ON ccp.company.id = cc.company.id AND ccp.category.code = c.code WHERE c.id = :categoryId AND ccp.isEnabled <> cc.isEnabled  AND EXISTS "
-			+ "(SELECT 1 FROM CompanyCategoriesPreview ccpSame WHERE ccpSame.company.id = cc.company.id AND ccpSame.category.code = c.code AND "
-			+ "ccpSame.isEnabled = cc.isEnabled)")
-		List<PublishExclusionRuleProjection> findExclusionRuleToPublish(@Param("categoryId") BigInteger categoryId);
+//	Boolean existsByCompanyAndCategoryAndIsEnabled(Company company, Categories category, ActiveFlag isEnabled);
+	
+	@Query("SELECT cc.id AS companyCategoriesId FROM CompanyCategories cc JOIN cc.category c WHERE c.id = :categoryId AND NOT EXISTS (SELECT 1 FROM CompanyCategoriesPreview ccp WHERE ccp.company.id = cc.company.id AND ccp.category.code = c.code)")
+	List<BigInteger> findExclusionRuleToPublish(@Param("categoryId") BigInteger categoryId);
+	
+	@Modifying
+	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW (ID, COMPANY_ID, CATEGORY_CODE) SELECT XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW_SEQ.NEXTVAL, c.ID_COMPANY, :categoryCode FROM XRBNPPUSR.COMPANY c", nativeQuery = true)
+	void insertCategoriesPreviewForAllCompanies (@Param("categoryCode") String categoryCode);
+	
+	@Modifying
+	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW (ID, COMPANY_ID, CATEGORY_CODE) SELECT XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW_SEQ.NEXTVAL, COMPANY_ID, :newCode FROM XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW WHERE CATEGORY_CODE = :oldCode", nativeQuery = true)
+	void cloneCompanyCategoriesPreview(@Param("oldCode") String oldCode,
+	                                   @Param("newCode") String newCode);
 }

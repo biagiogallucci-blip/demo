@@ -42,10 +42,6 @@ public class CompanyCategories implements Serializable {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "CATEGORY_CODE")
 	private Categories category;
-	
-	@Enumerated(EnumType.STRING)
-    @Column(name = "IS_ENABLED", nullable = false, length = 1)
-    private ActiveFlag isEnabled;
 
 	public BigInteger getId() {
 		return id;
@@ -69,13 +65,5 @@ public class CompanyCategories implements Serializable {
 
 	public void setCategory(Categories category) {
 		this.category = category;
-	}
-
-	public ActiveFlag getIsEnabled() {
-		return isEnabled;
-	}
-
-	public void setIsEnabled(ActiveFlag isEnabled) {
-		this.isEnabled = isEnabled;
 	}
 }

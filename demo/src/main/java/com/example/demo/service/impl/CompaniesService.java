@@ -184,46 +184,46 @@ public class CompaniesService implements ICompaniesService {
 	@Override
 	@Transactional
 	public CopyExclusionRulesResponse copyExclusionRules(BigInteger companyId, CompanyCreateRequest copyExclusionRulesRequest) {
-		Company company = companyRepository.findById(companyId)
-				.orElseThrow(() -> new CompanyNotFoundException(companyId));
-		
-		companyCategoriesRepository.deleteByCompanyId(companyId);
-		companyCategoriesPreviewRepository.deleteByCompanyId(companyId);
-		
-		List<CompanyCategories> categoriesToCopy = companyCategoriesRepository.findCategoriesByCompanyId(copyExclusionRulesRequest.getSourceCompanyId());
-		
-		for(CompanyCategories category : categoriesToCopy) {
-			CompanyCategories entity = new CompanyCategories();
-			entity.setCompany(company);
-			entity.setCategory(category.getCategory());
-			entity.setIsEnabled(category.getIsEnabled());
-			companyCategoriesRepository.save(entity);
-			
-			CompanyCategoriesPreview entityPreview = new CompanyCategoriesPreview();
-			entityPreview.setCompany(company);
-			entityPreview.setCategory(category.getCategory());
-			entityPreview.setIsEnabled(category.getIsEnabled());
-			companyCategoriesPreviewRepository.save(entityPreview);
-		}
-		
-		List<CompanyCategories> copiedExclusions = companyCategoriesRepository.findCategoriesByCompanyId(companyId);
-		List<CompanyExclusionRulesDto> rules = new ArrayList<>();
-		
-		for(CompanyCategories category : copiedExclusions) {
-			CompanyExclusionRulesDto rule = new CompanyExclusionRulesDto();
-			rule.setId(category.getId());
-			rule.setName(category.getCategory().getName());
-			rule.setTag(category.getCategory().getCode());
-			rule.setIsEnabled(Constants.YES.equals(category.getIsEnabled().name()) ? Boolean.TRUE : Boolean.FALSE);
-			rule.setHasDraft(Boolean.FALSE);
-			rule.setStatus(Constants.PUBLISHED);
-			rules.add(rule);
-		}
+//		Company company = companyRepository.findById(companyId)
+//				.orElseThrow(() -> new CompanyNotFoundException(companyId));
+//		
+//		companyCategoriesRepository.deleteByCompanyId(companyId);
+//		companyCategoriesPreviewRepository.deleteByCompanyId(companyId);
+//		
+//		List<CompanyCategories> categoriesToCopy = companyCategoriesRepository.findCategoriesByCompanyId(copyExclusionRulesRequest.getSourceCompanyId());
+//		
+//		for(CompanyCategories category : categoriesToCopy) {
+//			CompanyCategories entity = new CompanyCategories();
+//			entity.setCompany(company);
+//			entity.setCategory(category.getCategory());
+//			entity.setIsEnabled(category.getIsEnabled());
+//			companyCategoriesRepository.save(entity);
+//			
+//			CompanyCategoriesPreview entityPreview = new CompanyCategoriesPreview();
+//			entityPreview.setCompany(company);
+//			entityPreview.setCategory(category.getCategory());
+//			entityPreview.setIsEnabled(category.getIsEnabled());
+//			companyCategoriesPreviewRepository.save(entityPreview);
+//		}
+//		
+//		List<CompanyCategories> copiedExclusions = companyCategoriesRepository.findCategoriesByCompanyId(companyId);
+//		List<CompanyExclusionRulesDto> rules = new ArrayList<>();
+//		
+//		for(CompanyCategories category : copiedExclusions) {
+//			CompanyExclusionRulesDto rule = new CompanyExclusionRulesDto();
+//			rule.setId(category.getId());
+//			rule.setName(category.getCategory().getName());
+//			rule.setTag(category.getCategory().getCode());
+//			rule.setIsEnabled(Constants.YES.equals(category.getIsEnabled().name()) ? Boolean.TRUE : Boolean.FALSE);
+//			rule.setHasDraft(Boolean.FALSE);
+//			rule.setStatus(Constants.PUBLISHED);
+//			rules.add(rule);
+//		}
 		
 		CopyExclusionRulesResponse response = new CopyExclusionRulesResponse();
-		response.setData(rules);
-		response.setMessage(Constants.COPY_SUCCESS);
-		response.setCopiedCount(copiedExclusions.size());
+//		response.setData(rules);
+//		response.setMessage(Constants.COPY_SUCCESS);
+//		response.setCopiedCount(copiedExclusions.size());
 		
 		return response;
 	}
@@ -231,29 +231,20 @@ public class CompaniesService implements ICompaniesService {
 	@Override
 	@Transactional
 	public void updateDraft(BigInteger companyId, BigInteger ruleId, CreateExclusionDraftRequest createDraftRequest) {
-		
-		ActiveFlag createDraft = null;
-		
-		if(createDraftRequest.getIsEnabled().equals(Boolean.TRUE)) {
-			createDraft = ActiveFlag.Y;
+		if(Boolean.FALSE.equals(createDraftRequest.getIsEnabled())) {
+			Optional<CompanyCategoriesPreview> companyCategoriesPreview = companyCategoriesPreviewRepository.findByCompanyIdAndCategoryId(companyId, ruleId);
+			if(companyCategoriesPreview.isPresent()) {
+				companyCategoriesPreviewRepository.deleteById(companyCategoriesPreview.get().getId());
+			} 
 		} else {
-			createDraft = ActiveFlag.N;
+			Optional<CompanyCategories> companyCategories = companyCategoriesRepository.findByCompanyIdAndCategoryId(companyId, ruleId);
+			if(companyCategories.isPresent()) {
+				CompanyCategoriesPreview draft = new CompanyCategoriesPreview();
+				draft.setCompany(companyCategories.get().getCompany());
+				draft.setCategory(companyCategories.get().getCategory());
+				companyCategoriesPreviewRepository.save(draft);
+			} 
 		}
-		
-		CompanyCategoriesPreview companyCategoriesPreview = companyCategoriesPreviewRepository.findById(ruleId)
-				.orElseThrow(() -> new CompanyCategoriesNotFoundException(ruleId));
-		
-		if(!companyCategoriesPreview.getIsEnabled().equals(createDraft)) {
-			if(Boolean.FALSE.equals(companyCategoriesPreviewRepository.existsByCompanyAndCategoryAndIsEnabled(companyCategoriesPreview.getCompany(), companyCategoriesPreview.getCategory(), createDraft))) {
-			CompanyCategoriesPreview draft = new CompanyCategoriesPreview();
-			draft.setCompany(companyCategoriesPreview.getCompany());
-			draft.setCategory(companyCategoriesPreview.getCategory());
-			draft.setIsEnabled(createDraft);
-			companyCategoriesPreviewRepository.save(draft);
-			} else {
-				companyCategoriesPreviewRepository.deleteById(ruleId);
-			}
-		} 
 	}
 
 	@Override
@@ -370,20 +361,20 @@ public class CompaniesService implements ICompaniesService {
 	@Override
 	@Transactional
 	public void publishExclusionRules(BigInteger companyId, BigInteger ruleId) {
-		CompanyCategoriesPreview companyCategoriesPreviewToPublish = companyCategoriesPreviewRepository.findById(ruleId)
-				.orElseThrow(() -> new CompanyCategoriesNotFoundException(ruleId));
-		
-		Optional<CompanyCategories> companyCategories = companyCategoriesRepository.findByCompanyAndCategory(companyCategoriesPreviewToPublish.getCompany(), companyCategoriesPreviewToPublish.getCategory());
-
-		if(companyCategories.isPresent()) {
-		companyCategories.get().setIsEnabled(companyCategoriesPreviewToPublish.getIsEnabled());
-		companyCategoriesRepository.save(companyCategories.get());
-		}
-		
-		Optional<CompanyCategoriesPreview> oldPublished = companyCategoriesPreviewRepository.findByCompanyAndCategoryAndIdNot(companyCategoriesPreviewToPublish.getCompany(), companyCategoriesPreviewToPublish.getCategory(), ruleId);
-		if(oldPublished.isPresent()) {
-			companyCategoriesPreviewRepository.delete(oldPublished.get());
-		}
+//		CompanyCategoriesPreview companyCategoriesPreviewToPublish = companyCategoriesPreviewRepository.findById(ruleId)
+//				.orElseThrow(() -> new CompanyCategoriesNotFoundException(ruleId));
+//		
+//		Optional<CompanyCategories> companyCategories = companyCategoriesRepository.findByCompanyAndCategory(companyCategoriesPreviewToPublish.getCompany(), companyCategoriesPreviewToPublish.getCategory());
+//
+//		if(companyCategories.isPresent()) {
+//		companyCategories.get().setIsEnabled(companyCategoriesPreviewToPublish.getIsEnabled());
+//		companyCategoriesRepository.save(companyCategories.get());
+//		}
+//		
+//		Optional<CompanyCategoriesPreview> oldPublished = companyCategoriesPreviewRepository.findByCompanyAndCategoryAndIdNot(companyCategoriesPreviewToPublish.getCompany(), companyCategoriesPreviewToPublish.getCategory(), ruleId);
+//		if(oldPublished.isPresent()) {
+//			companyCategoriesPreviewRepository.delete(oldPublished.get());
+//		}
 	}
 
 	@Override

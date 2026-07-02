@@ -6,6 +6,6 @@ public interface ExclusionRulesProjection {
 	BigInteger getId();         
     String getCode();
     String getName();
-    Integer getCompanyCount();
+    Long getCompanyCount();
     String getStatus();    
 }

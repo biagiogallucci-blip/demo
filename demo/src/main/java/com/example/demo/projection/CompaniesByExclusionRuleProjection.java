@@ -6,6 +6,5 @@ public interface CompaniesByExclusionRuleProjection {
 	BigInteger getCompanyId();
     String getCompanyName();
     String getCompanyCode();
-    String getIsEnabled();       
-    String getDraftIsEnabled();
+    String getStatus();
 }

@@ -31,8 +31,8 @@ public interface CompanyRepository extends JpaRepository<Company, BigInteger> {
 			+ "WHERE cp.COMPANY_ID = c.ID_COMPANY) AS parametersCount FROM XRBNPPUSR.COMPANY c WHERE c.ID_COMPANY <> :exclude", nativeQuery = true)
 	List<CompanyLookupProjection> getCompanyLookup(@Param("exclude") BigInteger currentCompanyId);
 	
-	@Query(value = "SELECT c.ID_COMPANY as id, c.name_company AS name, c.code_company AS code FROM XRBNPPUSR.COMPANY c WHERE NOT EXISTS (SELECT 1 "
-			+ "FROM XRBNPPUSR.COMPANY_CATEGORIES cc JOIN XRBNPPUSR.CATEGORIES cat ON cat.CODE = cc.CATEGORY_CODE WHERE cc.COMPANY_ID = c.ID_COMPANY "
-			+ "AND cat.ID = :categoryId AND cc.IS_ENABLED = 'Y')", nativeQuery = true)
-	List<CompanyLookupProjection> getExclusionRuleLookup(@Param("categoryId") BigInteger currentRuleId);
+	@Query(value = "SELECT c.ID_COMPANY as id, c.name_company AS name, c.code_company AS code FROM XRBNPPUSR.COMPANY c WHERE NOT EXISTS "
+			+ "(SELECT 1 FROM XRBNPPUSR.COMPANY_CATEGORIES cc JOIN XRBNPPUSR.CATEGORIES cat ON cat.CODE = cc.CATEGORY_CODE WHERE cc.COMPANY_ID "
+			+ "= c.ID_COMPANY AND cat.ID = :categoryId)", nativeQuery = true)
+	List<CompanyLookupProjection> getExclusionRuleLookup(@Param("categoryId") BigInteger categoryId);
 }

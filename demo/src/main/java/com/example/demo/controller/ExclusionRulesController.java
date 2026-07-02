@@ -79,7 +79,7 @@ public class ExclusionRulesController {
 		return exclusionRulesService.cloneExclusionRule(ruleId, cloneExclusionRuleRequest);
 	}
 	
-	@PatchMapping("{ruleId}/companies/{companyId}")
+	@PostMapping("{ruleId}/companies/{companyId}")
 	    public void updateExclusionRuleForCompanyDraft (@PathVariable("companyId") BigInteger companyId, @PathVariable("ruleId") BigInteger ruleId,
 	    		@RequestBody CreateExclusionDraftRequest createDraftRequest) {
 	    	companiesService.updateDraft(companyId, ruleId, createDraftRequest);

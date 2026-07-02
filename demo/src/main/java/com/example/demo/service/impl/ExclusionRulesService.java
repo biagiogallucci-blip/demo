@@ -75,7 +75,7 @@ public class ExclusionRulesService implements IExclusionRulesService {
 			exclusionRule.setId(projection.getId());
 			exclusionRule.setName(projection.getName());
 			exclusionRule.setTag(projection.getCode());
-			exclusionRule.setCompaniesCount(projection.getCompanyCount());
+			exclusionRule.setCompaniesCount(projection.getCompanyCount().intValue());
 			exclusionRule.setLinks("/api/v1/exclusion-rules/".concat(String.valueOf(projection.getId())));
 			exclusionRule.setStatus(projection.getStatus());
 			if(Constants.DRAFT.equals(projection.getStatus())) {
@@ -117,24 +117,13 @@ public class ExclusionRulesService implements IExclusionRulesService {
 		category.setId(categoriesRepository.getNextId());
 
 		categoriesRepository.saveAndFlush(category);
-
-		List<Company> companies = new ArrayList<>();
+		
+		long companiesCount = 0;
 
 		if (Boolean.TRUE.equals(createExclusionRuleRequest.getApplyToAllCompanies())) {
-			companies = companyRepository.findAll();
-			for (Company company : companies) {
-				CompanyCategories entity = new CompanyCategories();
-				entity.setCompany(company);
-				entity.setCategory(category);
-				entity.setIsEnabled(ActiveFlag.Y);
-				companyCategoriesRepository.save(entity);
-
-				CompanyCategoriesPreview entityPreview = new CompanyCategoriesPreview();
-				entityPreview.setCompany(company);
-				entityPreview.setCategory(category);
-				entityPreview.setIsEnabled(ActiveFlag.Y);
-				companyCategoriesPreviewRepository.save(entityPreview);
-			}
+		    companyCategoriesRepository.insertCategoriesForAllCompanies(category.getCode());
+		    companyCategoriesPreviewRepository.insertCategoriesPreviewForAllCompanies(category.getCode());
+		    companiesCount = companyRepository.count();
 		}
 
 		CreateExclusionRuleResponse response = new CreateExclusionRuleResponse();
@@ -142,7 +131,7 @@ public class ExclusionRulesService implements IExclusionRulesService {
 		response.setName(category.getName());
 		response.setTag(category.getCode());
 		response.setStatus(createExclusionRuleRequest.getStatus());
-		response.setCompaniesCount(companies.size());
+		response.setCompaniesCount(companiesCount);
 		response.setCreatedAt(category.getCreation());
 
 		return response;
@@ -167,7 +156,6 @@ public class ExclusionRulesService implements IExclusionRulesService {
 		} else {
 			response.setHasDraft(Boolean.FALSE);
 		}
-		
 	    return response;
 	}
 
@@ -180,29 +168,26 @@ public class ExclusionRulesService implements IExclusionRulesService {
 		for(CompaniesByExclusionRuleProjection projection : result.getContent()) {
 			CompaniesByExclusionRuleDto dto = new CompaniesByExclusionRuleDto();
 			
-			boolean hasDraft = projection.getDraftIsEnabled() != null &&
-	                !projection.getDraftIsEnabled().equals(projection.getIsEnabled());
-			
-			String status;
-	        if (hasDraft) {
-	            status = Constants.PENDING_PUBLICATION;
-	        } else {
-	            status = Constants.PUBLISHED;
-	        }
-			
-			dto.setCompanyId(projection.getCompanyId());
-			dto.setCompanyName(projection.getCompanyName());
-			dto.setCompanyCode(projection.getCompanyCode());
-			dto.setIsEnabled(Constants.YES.equals(projection.getIsEnabled()) ? Boolean.TRUE : Boolean.FALSE);
-			dto.setHasDraft(hasDraft);
-			dto.setStatus(status);
-			
-			if(hasDraft) {
-				DraftExclusionRules draft = new DraftExclusionRules();
-				draft.setIsEnabled(Constants.YES.equals(projection.getDraftIsEnabled()) ? Boolean.TRUE : Boolean.FALSE);
-				draft.setStatus(Constants.DRAFT);
-				dto.setDraft(draft);
-			}
+			String apiStatus = Constants.PUBLISHED;
+
+		    boolean hasDraft = Constants.DRAFT.equals(projection.getStatus());
+
+		    if (hasDraft) {
+		        apiStatus = Constants.PENDING_PUBLICATION;
+		        DraftExclusionRules draft = new DraftExclusionRules();
+		        draft.setStatus(Constants.DRAFT);
+		        draft.setIsEnabled(Boolean.FALSE);
+		        dto.setDraft(draft);
+		    }
+
+		    dto.setCompanyId(projection.getCompanyId());
+		    dto.setCompanyName(projection.getCompanyName());
+		    dto.setCompanyCode(projection.getCompanyCode());
+
+		    dto.setStatus(apiStatus);
+		    dto.setHasDraft(hasDraft);
+		    dto.setIsEnabled(Boolean.TRUE);
+
 			companiesByExclusionRule.add(dto);
 		}
 		
@@ -239,19 +224,20 @@ public class ExclusionRulesService implements IExclusionRulesService {
 		CompanyCategories entity = new CompanyCategories();
 		entity.setCompany(company);
 		entity.setCategory(projection.getCategory());
-		entity.setIsEnabled(ActiveFlag.Y);
 		companyCategoriesRepository.save(entity);
 
 		CompanyCategoriesPreview entityPreview = new CompanyCategoriesPreview();
 		entityPreview.setCompany(company);
 		entityPreview.setCategory(projection.getCategory());
-		entityPreview.setIsEnabled(ActiveFlag.Y);
 		companyCategoriesPreviewRepository.save(entityPreview);
 	}
 
 	@Override
 	@Transactional
 	public CloneExclusionRuleResponse cloneExclusionRule(BigInteger ruleId, CloneExclusionRuleRequest cloneExclusionRuleRequest) {
+		categoriesRepository.findById(cloneExclusionRuleRequest.getNewTag()).ifPresent(category -> {
+			throw new CategoriesAlreadyExistException(cloneExclusionRuleRequest.getNewTag());
+		});
 		Categories categories = new Categories();
 		categories.setName(cloneExclusionRuleRequest.getNewName());
 		categories.setCode(cloneExclusionRuleRequest.getNewTag());
@@ -259,23 +245,18 @@ public class ExclusionRulesService implements IExclusionRulesService {
 		categories.setCreation(Timestamp.from(Instant.now()));
 		categories.setId(categoriesRepository.getNextId());
 		
-		categoriesRepository.save(categories);
+		categoriesRepository.saveAndFlush(categories);
 		
-		List<CloneExclusionRuleProjection> result = companyCategoriesRepository.findForCloneExclusionRule(ruleId);
+		Categories source = categoriesRepository.findByBusinessId(ruleId)
+				.orElseThrow(() -> new CategoriesNotFoundException(ruleId));
 		
-		for(CloneExclusionRuleProjection projection : result) {
-			CompanyCategories entity = new CompanyCategories();
-			entity.setCompany(projection.getCompany());
-			entity.setCategory(categories);
-			entity.setIsEnabled(projection.getIsEnabled());
-			companyCategoriesRepository.save(entity);
+		companyCategoriesRepository.cloneCompanyCategories(
+				source.getCode(),
+		        categories.getCode());
 
-			CompanyCategoriesPreview entityPreview = new CompanyCategoriesPreview();
-			entityPreview.setCompany(projection.getCompany());
-			entityPreview.setCategory(categories);
-			entityPreview.setIsEnabled(projection.getIsEnabled());
-			companyCategoriesPreviewRepository.save(entityPreview);
-		}
+		companyCategoriesPreviewRepository.cloneCompanyCategoriesPreview(
+				source.getCode(),
+		        categories.getCode());
 		
 		CloneExclusionRuleResponse response = new CloneExclusionRuleResponse();
 		response.setId(categories.getId());
@@ -286,10 +267,7 @@ public class ExclusionRulesService implements IExclusionRulesService {
 
 	@Override
 	public void publishExclusionRule(BigInteger ruleId) {
-		List<PublishExclusionRuleProjection> result = companyCategoriesPreviewRepository.findExclusionRuleToPublish(ruleId);
-		
-		for(PublishExclusionRuleProjection projection : result) {
-			companiesService.publishExclusionRules(projection.getCompanyId(), projection.getCompanyCategoriesPreviewId());
-		}
+		List<BigInteger> ids = companyCategoriesPreviewRepository.findExclusionRuleToPublish(ruleId);
+		companyCategoriesRepository.deleteAllById(ids);
 	}
 }

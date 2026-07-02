@@ -9,7 +9,7 @@ public class CreateExclusionRuleResponse {
 	private String name;
 	private String tag;
 	private String status;
-	private Integer companiesCount;
+	private Long companiesCount;
 	private Timestamp createdAt;
 	
 	public BigInteger getId() {
@@ -36,10 +36,10 @@ public class CreateExclusionRuleResponse {
 	public void setStatus(String status) {
 		this.status = status;
 	}
-	public Integer getCompaniesCount() {
+	public Long getCompaniesCount() {
 		return companiesCount;
 	}
-	public void setCompaniesCount(Integer companiesCount) {
+	public void setCompaniesCount(Long companiesCount) {
 		this.companiesCount = companiesCount;
 	}
 	public Timestamp getCreatedAt() {

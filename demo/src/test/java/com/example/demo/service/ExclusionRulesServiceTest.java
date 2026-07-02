@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
@@ -27,11 +28,9 @@ import com.example.demo.handler.CategoriesAlreadyExistException;
 import com.example.demo.handler.CategoriesNotFoundException;
 import com.example.demo.model.ExclusionRulesDto;
 import com.example.demo.projection.CategoriesWithDraftProjection;
-import com.example.demo.projection.CloneExclusionRuleProjection;
 import com.example.demo.projection.CompaniesByExclusionRuleProjection;
 import com.example.demo.projection.CompanyLookupProjection;
 import com.example.demo.projection.ExclusionRulesProjection;
-import com.example.demo.projection.PublishExclusionRuleProjection;
 import com.example.demo.repository.CategoriesRepository;
 import com.example.demo.repository.CompanyCategoriesPreviewRepository;
 import com.example.demo.repository.CompanyCategoriesRepository;
@@ -44,259 +43,247 @@ import com.example.demo.response.CompaniesByExclusionRuleResponse;
 import com.example.demo.response.CreateExclusionRuleResponse;
 import com.example.demo.response.ExclusionRulesResponse;
 import com.example.demo.service.impl.ExclusionRulesService;
-import com.example.demo.utils.ActiveFlag;
 import com.example.demo.utils.Constants;
 
 @ExtendWith(MockitoExtension.class)
 class ExclusionRulesServiceTest {
 
-    @Mock
-    private CategoriesRepository categoriesRepository;
-    @Mock
-    private CompanyRepository companyRepository;
-    @Mock
-    private CompanyCategoriesRepository companyCategoriesRepository;
-    @Mock
-    private CompanyCategoriesPreviewRepository companyCategoriesPreviewRepository;
-    @Mock
-    private ICompaniesService companiesService;
+	@Mock
+	private CategoriesRepository categoriesRepository;
+	@Mock
+	private CompanyRepository companyRepository;
+	@Mock
+	private CompanyCategoriesRepository companyCategoriesRepository;
+	@Mock
+	private CompanyCategoriesPreviewRepository companyCategoriesPreviewRepository;
+	@Mock
+	private ICompaniesService companiesService;
 
-    @InjectMocks
-    private ExclusionRulesService service;
+	@InjectMocks
+	private ExclusionRulesService service;
 
-    @Test
-    void shouldReturnExclusionRules_withDraftAndPublished() {
-        Page<ExclusionRulesProjection> page = mock(Page.class);
+	@Test
+	void shouldReturnExclusionRules_withDraftAndPublished() {
+		Page<ExclusionRulesProjection> page = mock(Page.class);
 
-        ExclusionRulesProjection draft = mock(ExclusionRulesProjection.class);
-        when(draft.getId()).thenReturn(BigInteger.ONE);
-        when(draft.getName()).thenReturn("Rule1");
-        when(draft.getCode()).thenReturn("R1");
-        when(draft.getCompanyCount()).thenReturn(2);
-        when(draft.getStatus()).thenReturn(Constants.DRAFT);
+		ExclusionRulesProjection draft = mock(ExclusionRulesProjection.class);
+		when(draft.getId()).thenReturn(BigInteger.ONE);
+		when(draft.getName()).thenReturn("Rule1");
+		when(draft.getCode()).thenReturn("R1");
+		when(draft.getCompanyCount()).thenReturn(2L);
+		when(draft.getStatus()).thenReturn(Constants.DRAFT);
 
-        ExclusionRulesProjection published = mock(ExclusionRulesProjection.class);
-        when(published.getId()).thenReturn(BigInteger.TWO);
-        when(published.getName()).thenReturn("Rule2");
-        when(published.getCode()).thenReturn("R2");
-        when(published.getCompanyCount()).thenReturn(1);
-        when(published.getStatus()).thenReturn(Constants.PUBLISHED);
+		ExclusionRulesProjection published = mock(ExclusionRulesProjection.class);
+		when(published.getId()).thenReturn(BigInteger.TWO);
+		when(published.getName()).thenReturn("Rule2");
+		when(published.getCode()).thenReturn("R2");
+		when(published.getCompanyCount()).thenReturn(1L);
+		when(published.getStatus()).thenReturn(Constants.PUBLISHED);
 
-        when(page.getContent()).thenReturn(List.of(draft, published));
-        when(page.getTotalPages()).thenReturn(1);
-        when(page.getTotalElements()).thenReturn(2L);
+		when(page.getContent()).thenReturn(List.of(draft, published));
+		when(page.getTotalPages()).thenReturn(1);
+		when(page.getTotalElements()).thenReturn(2L);
 
-        when(categoriesRepository.getExclusionRules(any(), any(), any()))
-                .thenReturn(page);
+		when(categoriesRepository.getExclusionRules(any(), any(), any())).thenReturn(page);
 
-        ExclusionRulesResponse response =
-                service.getExclusionRules(1, 10, null, null);
+		ExclusionRulesResponse response = service.getExclusionRules(1, 10, null, null);
 
-        assertEquals(2, response.getData().size());
-        assertTrue(response.getData().get(0).getHasDraft());
-        assertFalse(response.getData().get(1).getHasDraft());
-    }
+		assertEquals(2, response.getData().size());
+		assertTrue(response.getData().get(0).getHasDraft());
+		assertFalse(response.getData().get(1).getHasDraft());
+	}
 
-    @Test
-    void shouldCreateExclusionRule_withoutCompanies() {
-        CreateExclusionRuleRequest request = new CreateExclusionRuleRequest();
-        request.setTag("TAG");
-        request.setName("NAME");
-        request.setApplyToAllCompanies(false);
+	@Test
+	void shouldCreateExclusionRule_withoutCompanies() {
+		CreateExclusionRuleRequest request = new CreateExclusionRuleRequest();
+		request.setTag("TAG");
+		request.setName("NAME");
+		request.setApplyToAllCompanies(false);
 
-        when(categoriesRepository.findById("TAG")).thenReturn(Optional.empty());
-        when(categoriesRepository.getNextId()).thenReturn(BigInteger.ONE);
+		when(categoriesRepository.findById("TAG")).thenReturn(Optional.empty());
+		when(categoriesRepository.getNextId()).thenReturn(BigInteger.ONE);
 
-        CreateExclusionRuleResponse response =
-                service.createExclusionRule(request);
+		CreateExclusionRuleResponse response = service.createExclusionRule(request);
 
-        verify(categoriesRepository).saveAndFlush(any());
-        assertEquals(0, response.getCompaniesCount());
-    }
+		verify(categoriesRepository).saveAndFlush(any());
+		assertEquals(0, response.getCompaniesCount());
+	}
 
-    @Test
-    void shouldCreateExclusionRule_withAllCompanies() {
-        CreateExclusionRuleRequest request = new CreateExclusionRuleRequest();
-        request.setTag("TAG");
-        request.setName("NAME");
-        request.setApplyToAllCompanies(true);
+	@Test
+	void shouldCreateExclusionRule_withAllCompanies() {
+		CreateExclusionRuleRequest request = new CreateExclusionRuleRequest();
+		request.setTag("TAG");
+		request.setName("NAME");
+		request.setApplyToAllCompanies(true);
 
-        when(categoriesRepository.findById("TAG")).thenReturn(Optional.empty());
-        when(categoriesRepository.getNextId()).thenReturn(BigInteger.ONE);
+		when(categoriesRepository.findById("TAG")).thenReturn(Optional.empty());
 
-        Company company = new Company();
-        when(companyRepository.findAll()).thenReturn(List.of(company));
+		when(categoriesRepository.getNextId()).thenReturn(BigInteger.ONE);
 
-        CreateExclusionRuleResponse response =
-                service.createExclusionRule(request);
+		when(companyRepository.count()).thenReturn(1L);
 
-        verify(companyCategoriesRepository).save(any());
-        verify(companyCategoriesPreviewRepository).save(any());
-        assertEquals(1, response.getCompaniesCount());
-    }
+		CreateExclusionRuleResponse response = service.createExclusionRule(request);
 
-    @Test
-    void shouldThrowWhenCategoryAlreadyExists() {
-        CreateExclusionRuleRequest request = new CreateExclusionRuleRequest();
-        request.setTag("TAG");
+		verify(categoriesRepository).saveAndFlush(any());
+		verify(companyCategoriesRepository).insertCategoriesForAllCompanies("TAG");
+		verify(companyCategoriesPreviewRepository).insertCategoriesPreviewForAllCompanies("TAG");
 
-        when(categoriesRepository.findById("TAG"))
-                .thenReturn(Optional.of(new Categories()));
+		assertEquals(1L, response.getCompaniesCount());
+	}
 
-        assertThrows(CategoriesAlreadyExistException.class,
-                () -> service.createExclusionRule(request));
-    }
+	@Test
+	void shouldThrowWhenCategoryAlreadyExists() {
+		CreateExclusionRuleRequest request = new CreateExclusionRuleRequest();
+		request.setTag("TAG");
 
-    @Test
-    void shouldReturnExclusionRuleById_withDraft() {
-        Categories category = new Categories();
-        category.setId(BigInteger.ONE);
-        category.setName("NAME");
-        category.setCode("TAG");
+		when(categoriesRepository.findById("TAG")).thenReturn(Optional.of(new Categories()));
 
-        CategoriesWithDraftProjection projection = mock(CategoriesWithDraftProjection.class);
-        when(projection.getCategory()).thenReturn(category);
-        when(projection.getStatus()).thenReturn(Constants.DRAFT);
+		assertThrows(CategoriesAlreadyExistException.class, () -> service.createExclusionRule(request));
+	}
 
-        when(categoriesRepository.getByRuleId(BigInteger.ONE))
-                .thenReturn(Optional.of(projection));
+	@Test
+	void shouldReturnExclusionRuleById_withDraft() {
+		Categories category = new Categories();
+		category.setId(BigInteger.ONE);
+		category.setName("NAME");
+		category.setCode("TAG");
 
-        ExclusionRulesDto response =
-                service.getExclusionRuleById(BigInteger.ONE);
+		CategoriesWithDraftProjection projection = mock(CategoriesWithDraftProjection.class);
+		when(projection.getCategory()).thenReturn(category);
+		when(projection.getStatus()).thenReturn(Constants.DRAFT);
 
-        assertTrue(response.getHasDraft());
-    }
+		when(categoriesRepository.getByRuleId(BigInteger.ONE)).thenReturn(Optional.of(projection));
 
-    @Test
-    void shouldThrowWhenRuleNotFound() {
-        when(categoriesRepository.getByRuleId(any()))
-                .thenReturn(Optional.empty());
+		ExclusionRulesDto response = service.getExclusionRuleById(BigInteger.ONE);
 
-        assertThrows(CategoriesNotFoundException.class,
-                () -> service.getExclusionRuleById(BigInteger.ONE));
-    }
+		assertTrue(response.getHasDraft());
+	}
 
-    @Test
-    void shouldReturnCompaniesByRule_withDraft() {
-        Page<CompaniesByExclusionRuleProjection> page = mock(Page.class);
-        CompaniesByExclusionRuleProjection projection = mock(CompaniesByExclusionRuleProjection.class);
+	@Test
+	void shouldThrowWhenRuleNotFound() {
+		when(categoriesRepository.getByRuleId(any())).thenReturn(Optional.empty());
 
-        when(projection.getCompanyId()).thenReturn(BigInteger.ONE);
-        when(projection.getCompanyName()).thenReturn("Company");
-        when(projection.getCompanyCode()).thenReturn("C1");
-        when(projection.getIsEnabled()).thenReturn("Y");
-        when(projection.getDraftIsEnabled()).thenReturn("N");
+		assertThrows(CategoriesNotFoundException.class, () -> service.getExclusionRuleById(BigInteger.ONE));
+	}
 
-        when(page.getContent()).thenReturn(List.of(projection));
-        when(page.getTotalPages()).thenReturn(1);
-        when(page.getTotalElements()).thenReturn(1L);
+	@Test
+	void shouldReturnCompaniesByRule_withDraft() {
+		Page<CompaniesByExclusionRuleProjection> page = mock(Page.class);
+		CompaniesByExclusionRuleProjection projection = mock(CompaniesByExclusionRuleProjection.class);
 
-        when(companyCategoriesRepository.getCompaniesByExclusionRuleId(any(), any(), any()))
-                .thenReturn(page);
+		when(projection.getCompanyId()).thenReturn(BigInteger.ONE);
+		when(projection.getCompanyName()).thenReturn("Company");
+		when(projection.getCompanyCode()).thenReturn("C1");
+		when(projection.getStatus()).thenReturn("DRAFT");
 
-        CompaniesByExclusionRuleResponse response =
-                service.getCompaniesByExclusionRuleId(BigInteger.ONE, 1, 10, null);
+		when(page.getContent()).thenReturn(List.of(projection));
+		when(page.getTotalPages()).thenReturn(1);
+		when(page.getTotalElements()).thenReturn(1L);
 
-        assertTrue(response.getData().get(0).getHasDraft());
-        assertNotNull(response.getData().get(0).getDraft());
-    }
+		when(companyCategoriesRepository.getCompaniesByExclusionRuleId(any(), any(), any())).thenReturn(page);
 
-    @Test
-    void shouldReturnCompaniesByRule_withoutDraft() {
-        Page<CompaniesByExclusionRuleProjection> page = mock(Page.class);
-        CompaniesByExclusionRuleProjection projection = mock(CompaniesByExclusionRuleProjection.class);
+		CompaniesByExclusionRuleResponse response = service.getCompaniesByExclusionRuleId(BigInteger.ONE, 1, 10, null);
 
-        when(projection.getCompanyId()).thenReturn(BigInteger.ONE);
-        when(projection.getCompanyName()).thenReturn("Company");
-        when(projection.getCompanyCode()).thenReturn("C1");
-        when(projection.getIsEnabled()).thenReturn("Y");
-        when(projection.getDraftIsEnabled()).thenReturn("Y");
+		assertTrue(response.getData().get(0).getHasDraft());
+		assertNotNull(response.getData().get(0).getDraft());
+	}
 
-        when(page.getContent()).thenReturn(List.of(projection));
-        when(page.getTotalPages()).thenReturn(1);
-        when(page.getTotalElements()).thenReturn(1L);
+	@Test
+	void shouldReturnCompaniesByRule_withoutDraft() {
+		Page<CompaniesByExclusionRuleProjection> page = mock(Page.class);
+		CompaniesByExclusionRuleProjection projection = mock(CompaniesByExclusionRuleProjection.class);
 
-        when(companyCategoriesRepository.getCompaniesByExclusionRuleId(any(), any(), any()))
-                .thenReturn(page);
+		when(projection.getCompanyId()).thenReturn(BigInteger.ONE);
+		when(projection.getCompanyName()).thenReturn("Company");
+		when(projection.getCompanyCode()).thenReturn("C1");
 
-        CompaniesByExclusionRuleResponse response =
-                service.getCompaniesByExclusionRuleId(BigInteger.ONE, 1, 10, null);
+		when(page.getContent()).thenReturn(List.of(projection));
+		when(page.getTotalPages()).thenReturn(1);
+		when(page.getTotalElements()).thenReturn(1L);
 
-        assertFalse(response.getData().get(0).getHasDraft());
-    }
+		when(companyCategoriesRepository.getCompaniesByExclusionRuleId(any(), any(), any())).thenReturn(page);
 
-    @Test
-    void shouldReturnExclusionRuleLookup() {
-        when(companyRepository.getExclusionRuleLookup(any()))
-                .thenReturn(List.of(mock(CompanyLookupProjection.class)));
+		CompaniesByExclusionRuleResponse response = service.getCompaniesByExclusionRuleId(BigInteger.ONE, 1, 10, null);
 
-        List<CompanyLookupProjection> result =
-                service.getExclusionRuleLookup(BigInteger.ONE);
+		assertFalse(response.getData().get(0).getHasDraft());
+	}
 
-        assertEquals(1, result.size());
-    }
+	@Test
+	void shouldReturnExclusionRuleLookup() {
+		when(companyRepository.getExclusionRuleLookup(any())).thenReturn(List.of(mock(CompanyLookupProjection.class)));
 
-    @Test
-    void shouldCreateExclusionRuleForCompany() {
-        Categories category = new Categories();
+		List<CompanyLookupProjection> result = service.getExclusionRuleLookup(BigInteger.ONE);
 
-        CategoriesWithDraftProjection projection = mock(CategoriesWithDraftProjection.class);
-        when(projection.getCategory()).thenReturn(category);
+		assertEquals(1, result.size());
+	}
 
-        when(categoriesRepository.getByRuleId(any()))
-                .thenReturn(Optional.of(projection));
+	@Test
+	void shouldCreateExclusionRuleForCompany() {
+		Categories category = new Categories();
 
-        Company company = new Company();
-        when(companyRepository.findById(any()))
-                .thenReturn(Optional.of(company));
+		CategoriesWithDraftProjection projection = mock(CategoriesWithDraftProjection.class);
+		when(projection.getCategory()).thenReturn(category);
 
-        CompanyCreateRequest request = new CompanyCreateRequest();
-        request.setSourceCompanyId(BigInteger.ONE);
+		when(categoriesRepository.getByRuleId(any())).thenReturn(Optional.of(projection));
 
-        service.createExclusionRuleForCompany(BigInteger.ONE, request);
+		Company company = new Company();
+		when(companyRepository.findById(any())).thenReturn(Optional.of(company));
 
-        verify(companyCategoriesRepository).save(any());
-        verify(companyCategoriesPreviewRepository).save(any());
-    }
+		CompanyCreateRequest request = new CompanyCreateRequest();
+		request.setSourceCompanyId(BigInteger.ONE);
 
-    @Test
-    void shouldCloneExclusionRule() {
-        when(categoriesRepository.getNextId())
-                .thenReturn(BigInteger.ONE);
+		service.createExclusionRuleForCompany(BigInteger.ONE, request);
 
-        CloneExclusionRuleProjection projection = mock(CloneExclusionRuleProjection.class);
-        when(projection.getCompany()).thenReturn(new Company());
-        when(projection.getIsEnabled()).thenReturn(ActiveFlag.Y);
+		verify(companyCategoriesRepository).save(any());
+		verify(companyCategoriesPreviewRepository).save(any());
+	}
 
-        when(companyCategoriesRepository.findForCloneExclusionRule(any()))
-                .thenReturn(List.of(projection));
+	@Test
+	void shouldCloneExclusionRule() {
+		BigInteger ruleId = BigInteger.valueOf(10);
 
-        CloneExclusionRuleRequest request = new CloneExclusionRuleRequest();
-        request.setNewName("NEW");
-        request.setNewTag("NEW_TAG");
+		CloneExclusionRuleRequest request = new CloneExclusionRuleRequest();
+		request.setNewTag("NEW_TAG");
+		request.setNewName("New Rule");
 
-        CloneExclusionRuleResponse response =
-                service.cloneExclusionRule(BigInteger.ONE, request);
+		Categories source = new Categories();
+		source.setCode("OLD_TAG");
+		source.setId(ruleId);
 
-        verify(companyCategoriesRepository).save(any());
-        verify(companyCategoriesPreviewRepository).save(any());
+		when(categoriesRepository.findById("NEW_TAG")).thenReturn(Optional.empty());
 
-        assertEquals("NEW", response.getName());
-    }
-    
-    @Test
-    void shouldPublishExclusionRule() {
-        PublishExclusionRuleProjection projection = mock(PublishExclusionRuleProjection.class);
+		when(categoriesRepository.findByBusinessId(ruleId)).thenReturn(Optional.of(source));
 
-        when(projection.getCompanyId()).thenReturn(BigInteger.ONE);
-        when(projection.getCompanyCategoriesPreviewId()).thenReturn(BigInteger.TEN);
+		when(categoriesRepository.getNextId()).thenReturn(BigInteger.valueOf(999));
 
-        when(companyCategoriesPreviewRepository.findExclusionRuleToPublish(any()))
-                .thenReturn(List.of(projection));
+		CloneExclusionRuleResponse response = service.cloneExclusionRule(ruleId, request);
 
-        service.publishExclusionRule(BigInteger.ONE);
+		assertNotNull(response);
+		assertEquals(BigInteger.valueOf(999), response.getId());
+		assertEquals("New Rule", response.getName());
 
-        verify(companiesService)
-                .publishExclusionRules(BigInteger.ONE, BigInteger.TEN);
-    }
+		verify(categoriesRepository).findById("NEW_TAG");
+		verify(categoriesRepository).findByBusinessId(ruleId);
+		verify(categoriesRepository).getNextId();
+		verify(categoriesRepository).saveAndFlush(any(Categories.class));
+
+		verify(companyCategoriesRepository).cloneCompanyCategories("OLD_TAG", "NEW_TAG");
+
+		verify(companyCategoriesPreviewRepository).cloneCompanyCategoriesPreview("OLD_TAG", "NEW_TAG");
+
+		verifyNoMoreInteractions(categoriesRepository, companyCategoriesRepository, companyCategoriesPreviewRepository);
+	}
+
+	@Test
+	void shouldPublishExclusionRule() {
+		BigInteger ruleId = BigInteger.ONE;
+		List<BigInteger> ids = List.of(BigInteger.ONE, BigInteger.TWO, BigInteger.valueOf(3));
+
+		when(companyCategoriesPreviewRepository.findExclusionRuleToPublish(ruleId)).thenReturn(ids);
+		service.publishExclusionRule(ruleId);
+
+		verify(companyCategoriesPreviewRepository).findExclusionRuleToPublish(ruleId);
+		verify(companyCategoriesRepository).deleteAllById(ids);
+		verifyNoMoreInteractions(companyCategoriesRepository, companyCategoriesPreviewRepository);
+	}
 }

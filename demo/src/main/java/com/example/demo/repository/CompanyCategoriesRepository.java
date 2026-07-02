@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.demo.entity.Categories;
 import com.example.demo.entity.Company;
 import com.example.demo.entity.CompanyCategories;
+import com.example.demo.entity.CompanyCategoriesPreview;
 import com.example.demo.projection.CloneExclusionRuleProjection;
 import com.example.demo.projection.CompaniesByExclusionRuleProjection;
 import com.example.demo.projection.CompanyExclusionRulesProjection;
@@ -46,16 +47,31 @@ public interface CompanyCategoriesRepository extends JpaRepository<CompanyCatego
 
 	Optional<CompanyCategories> findByCompanyAndCategory(Company company, Categories category);
 
-	@Query(value = "SELECT comp.idCompany AS companyId, comp.nameCompany AS companyName, comp.codeCompany AS companyCode, cc.isEnabled "
-			+ "AS isEnabled, (SELECT MAX(cp.isEnabled) FROM CompanyCategoriesPreview cp WHERE cp.company.idCompany = comp.idCompany "
-			+ "AND cp.category.code = c.code AND cp.isEnabled <> cc.isEnabled) AS draftIsEnabled FROM CompanyCategories cc JOIN cc.company comp "
-	        + "JOIN cc.category c WHERE c.id = :ruleId AND (:search IS NULL OR LOWER(comp.nameCompany) LIKE LOWER(CONCAT('%', :search, '%')) "
-	        + "OR LOWER(comp.codeCompany) LIKE LOWER(CONCAT('%', :search, '%')))",
-	       countQuery = "SELECT COUNT(cc) FROM CompanyCategories cc JOIN cc.company comp JOIN cc.category c WHERE c.id = :ruleId "
-	       		+ "AND (:search IS NULL OR LOWER(comp.nameCompany) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(comp.codeCompany) LIKE LOWER(CONCAT('%', :search, '%')))")
-	Page<CompaniesByExclusionRuleProjection> getCompaniesByExclusionRuleId(@Param("ruleId") BigInteger ruleId, @Param("search") String search, 
-	        Pageable pageable);
+	@Query(value = "SELECT comp.id_company AS companyId, comp.name_company AS companyName, comp.code_company AS companyCode, CASE WHEN EXISTS (SELECT 1 FROM "
+			+ "XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW cp WHERE cp.company_id = comp.id_company AND cp.category_code = c.code) THEN 'PUBLISHED' ELSE 'DRAFT' END AS status "
+			+ "FROM XRBNPPUSR.COMPANY_CATEGORIES cc JOIN XRBNPPUSR.COMPANY comp ON comp.id_company = cc.company_id JOIN XRBNPPUSR.CATEGORIES c "
+			+ "ON c.code = cc.category_code WHERE c.id = :ruleId AND (:search IS NULL OR :search = '' OR LOWER(comp.name_company) LIKE LOWER('%' || :search || '%') "
+			+ "OR LOWER(comp.code_company) LIKE LOWER('%' || :search || '%'))",
+			countQuery = "SELECT COUNT(*) FROM (SELECT comp.id_company FROM XRBNPPUSR.COMPANY_CATEGORIES cc JOIN XRBNPPUSR.COMPANY comp ON "
+					+ "comp.id_company = cc.company_id JOIN XRBNPPUSR.CATEGORIES c ON c.code = cc.category_code WHERE c.id = :ruleId AND "
+					+ "(:search IS NULL OR :search = '' OR LOWER(comp.name_company) LIKE LOWER('%' || :search || '%') OR LOWER(comp.code_company) "
+					+ "LIKE LOWER('%' || :search || '%')) GROUP BY comp.id_company) t", nativeQuery = true)
+	Page<CompaniesByExclusionRuleProjection> getCompaniesByExclusionRuleId(@Param("ruleId") BigInteger ruleId,
+			@Param("search") String search, Pageable pageable);
 	
-	@Query("SELECT cc.company AS company, cc.isEnabled AS isEnabled FROM CompanyCategories cc JOIN cc.category c WHERE c.id = :oldCategoryId")
-		List<CloneExclusionRuleProjection> findForCloneExclusionRule(@Param("oldCategoryId") BigInteger oldCategoryId);
+	@Query("SELECT cc FROM CompanyCategories cc WHERE cc.company.idCompany = :idCompany AND cc.category.id = :categoryId") 
+	Optional<CompanyCategories> findByCompanyIdAndCategoryId(@Param("idCompany") BigInteger idCompany, @Param("categoryId") BigInteger categoryId);
+
+//	@Query("SELECT cc.company AS company, cc.isEnabled AS isEnabled FROM CompanyCategories cc JOIN cc.category c WHERE c.id = :oldCategoryId")
+//		List<CloneExclusionRuleProjection> findForCloneExclusionRule(@Param("oldCategoryId") BigInteger oldCategoryId);
+	
+	@Modifying
+	@Transactional
+	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_CATEGORIES (ID, COMPANY_ID, CATEGORY_CODE) SELECT XRBNPPUSR.COMPANY_CATEGORIES_SEQ.NEXTVAL, c.ID_COMPANY, :categoryCode FROM XRBNPPUSR.COMPANY c", nativeQuery = true)
+	void insertCategoriesForAllCompanies(@Param("categoryCode") String categoryCode);
+	
+	@Modifying
+	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_CATEGORIES (ID, COMPANY_ID, CATEGORY_CODE) SELECT XRBNPPUSR.COMPANY_CATEGORIES_SEQ.NEXTVAL, COMPANY_ID, :newCode FROM XRBNPPUSR.COMPANY_CATEGORIES WHERE CATEGORY_CODE = :oldCode", nativeQuery = true)
+	void cloneCompanyCategories(@Param("oldCode") String oldCode,
+	                            @Param("newCode") String newCode);
 }
