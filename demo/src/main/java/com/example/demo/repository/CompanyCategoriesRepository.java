@@ -16,8 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.demo.entity.Categories;
 import com.example.demo.entity.Company;
 import com.example.demo.entity.CompanyCategories;
-import com.example.demo.entity.CompanyCategoriesPreview;
-import com.example.demo.projection.CloneExclusionRuleProjection;
 import com.example.demo.projection.CompaniesByExclusionRuleProjection;
 import com.example.demo.projection.CompanyExclusionRulesProjection;
 
@@ -28,14 +26,16 @@ public interface CompanyCategoriesRepository extends JpaRepository<CompanyCatego
 			+ "cc.company.codeCompany =:companyCode AND cc.category.active = 'Y' ")
 	List<String> findActiveCategoryCodesByCompanyCode(@Param("companyCode") String companyCode);
 
-	@Query(value = "SELECT preview_id AS previewId, category_code AS tag, category_name AS name, is_enabled_company AS isEnabled, is_enabled_preview AS isEnabledPreview "
-			+ "FROM (SELECT p.id AS preview_id, p.company_id, p.category_code, c.name AS category_name, NVL(cc.is_enabled, 'N/A') AS is_enabled_company, p.is_enabled "
-			+ "AS is_enabled_preview, ROW_NUMBER() OVER (PARTITION BY p.company_id, p.category_code ORDER BY CASE WHEN cc.is_enabled IS NULL THEN 1 WHEN cc.is_enabled <> p.is_enabled "
-			+ "THEN 1 ELSE 2 END) AS rn FROM xrbnppusr.company_categories_preview p JOIN xrbnppusr.categories c ON c.code = p.category_code LEFT JOIN xrbnppusr.company_categories cc "
-			+ "ON cc.company_id = p.company_id AND cc.category_code = p.category_code WHERE p.company_id = :idCompany AND (:search IS NULL OR LOWER(p.category_code) "
-			+ "LIKE '%' || LOWER(:search) || '%' OR LOWER(c.name) LIKE '%' || LOWER(:search) || '%')) WHERE rn = 1", nativeQuery = true)
-	List<CompanyExclusionRulesProjection> getCompanyExclusionRules(@Param("idCompany") BigInteger idCompany,
-			@Param("search") String search);
+	@Query(value = "SELECT c.id AS id, c.code AS tag, c.name AS name, CASE WHEN cc.company_id IS NOT NULL THEN 1 ELSE 0 END AS isEnabled, "
+			+ "CASE WHEN (cc.company_id IS NULL AND cp.company_id IS NOT NULL) OR (cc.company_id IS NOT NULL AND cp.company_id IS NULL) THEN 1 ELSE 0 "
+			+ "END AS hasDraft, CASE WHEN cc.company_id IS NOT NULL AND cp.company_id IS NULL THEN 0 WHEN cc.company_id IS NULL AND cp.company_id "
+			+ "IS NOT NULL THEN 1 ELSE NULL END AS draftIsEnabled, CASE WHEN (cc.company_id IS NULL AND cp.company_id IS NOT NULL) OR "
+			+ "(cc.company_id IS NOT NULL AND cp.company_id IS NULL) THEN 'PENDING_PUBLICATION' ELSE 'PUBLISHED' END AS status FROM "
+			+ "XRBNPPUSR.CATEGORIES c LEFT JOIN XRBNPPUSR.COMPANY_CATEGORIES cc ON cc.category_code = c.code AND cc.company_id = :idCompany "
+			+ "LEFT JOIN XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW cp ON cp.category_code = c.code AND cp.company_id = :idCompany WHERE (:search IS NULL "
+			+ "OR :search = '' OR LOWER(c.code) LIKE LOWER('%' || :search || '%') OR LOWER(c.name) LIKE LOWER('%' || :search || '%')) "
+			+ "ORDER BY c.name", nativeQuery = true)
+	List<CompanyExclusionRulesProjection> getCompanyExclusionRules(@Param("idCompany") BigInteger companyId, @Param("search") String search);
 
 	@Modifying
 	@Transactional
@@ -61,9 +61,6 @@ public interface CompanyCategoriesRepository extends JpaRepository<CompanyCatego
 	
 	@Query("SELECT cc FROM CompanyCategories cc WHERE cc.company.idCompany = :idCompany AND cc.category.id = :categoryId") 
 	Optional<CompanyCategories> findByCompanyIdAndCategoryId(@Param("idCompany") BigInteger idCompany, @Param("categoryId") BigInteger categoryId);
-
-//	@Query("SELECT cc.company AS company, cc.isEnabled AS isEnabled FROM CompanyCategories cc JOIN cc.category c WHERE c.id = :oldCategoryId")
-//		List<CloneExclusionRuleProjection> findForCloneExclusionRule(@Param("oldCategoryId") BigInteger oldCategoryId);
 	
 	@Modifying
 	@Transactional
@@ -74,4 +71,23 @@ public interface CompanyCategoriesRepository extends JpaRepository<CompanyCatego
 	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_CATEGORIES (ID, COMPANY_ID, CATEGORY_CODE) SELECT XRBNPPUSR.COMPANY_CATEGORIES_SEQ.NEXTVAL, COMPANY_ID, :newCode FROM XRBNPPUSR.COMPANY_CATEGORIES WHERE CATEGORY_CODE = :oldCode", nativeQuery = true)
 	void cloneCompanyCategories(@Param("oldCode") String oldCode,
 	                            @Param("newCode") String newCode);
+	
+	@Query(value = "SELECT COUNT(*) FROM XRBNPPUSR.COMPANY_CATEGORIES WHERE COMPANY_ID = :companyId AND CATEGORY_CODE = :categoryCode", nativeQuery = true)
+	long existsCompanyCategory(@Param("companyId") BigInteger companyId,
+	                           @Param("categoryCode") String categoryCode);
+	
+	@Modifying
+	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_CATEGORIES (ID, COMPANY_ID, CATEGORY_CODE) VALUES (XRBNPPUSR.COMPANY_CATEGORIES_SEQ.NEXTVAL, :companyId, :categoryCode)", nativeQuery = true)
+	void insertCompanyCategory(@Param("companyId") BigInteger companyId,
+	                           @Param("categoryCode") String categoryCode);
+	
+	@Modifying
+	@Query(value = "DELETE FROM XRBNPPUSR.COMPANY_CATEGORIES WHERE COMPANY_ID = :companyId AND CATEGORY_CODE = :categoryCode", nativeQuery = true)
+	void deleteCompanyCategory(@Param("companyId") BigInteger companyId,
+	                           @Param("categoryCode") String categoryCode);
+	
+	@Modifying
+	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_CATEGORIES (ID, COMPANY_ID, CATEGORY_CODE) SELECT XRBNPPUSR.COMPANY_CATEGORIES_SEQ.NEXTVAL, :targetCompanyId, CATEGORY_CODE FROM XRBNPPUSR.COMPANY_CATEGORIES WHERE COMPANY_ID = :sourceCompanyId", nativeQuery = true)
+	int copyCompanyCategories(@Param("sourceCompanyId") BigInteger sourceCompanyId,
+	                           @Param("targetCompanyId") BigInteger targetCompanyId);
 }

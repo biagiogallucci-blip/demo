@@ -3,9 +3,11 @@ package com.example.demo.projection;
 import java.math.BigInteger;
 
 public interface CompanyExclusionRulesProjection {
-	BigInteger getPreviewId();
-	String getTag();
-	String getName();
-	String getIsEnabled();
-	String getIsEnabledPreview();
+	BigInteger getId();
+    String getTag();
+    String getName();
+    Integer getIsEnabled();
+    Integer getHasDraft();
+    Integer getDraftIsEnabled();
+    String getStatus();
 }

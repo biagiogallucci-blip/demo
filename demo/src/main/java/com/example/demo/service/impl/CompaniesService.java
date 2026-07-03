@@ -11,13 +11,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.demo.entity.Categories;
 import com.example.demo.entity.Company;
-import com.example.demo.entity.CompanyCategories;
-import com.example.demo.entity.CompanyCategoriesPreview;
+
 import com.example.demo.entity.CompanyParameters;
 import com.example.demo.entity.CompanyParametersPreview;
 import com.example.demo.entity.CustomizationParameters;
-import com.example.demo.handler.CompanyCategoriesNotFoundException;
+import com.example.demo.handler.CategoriesNotFoundException;
+
 import com.example.demo.handler.CompanyNotFoundException;
 import com.example.demo.handler.CompanyParametersNotFoundException;
 import com.example.demo.handler.CompanyParametersPreviewNotFoundException;
@@ -35,6 +36,7 @@ import com.example.demo.projection.CompanyExclusionRulesProjection;
 import com.example.demo.projection.CompanyLookupProjection;
 import com.example.demo.projection.CompanyParameterProjection;
 import com.example.demo.projection.CompanyProjection;
+import com.example.demo.repository.CategoriesRepository;
 import com.example.demo.repository.CompanyCategoriesPreviewRepository;
 import com.example.demo.repository.CompanyCategoriesRepository;
 import com.example.demo.repository.CompanyParametersPreviewRepository;
@@ -52,129 +54,130 @@ import com.example.demo.response.CompanyExclusionRulesResponse;
 import com.example.demo.response.CopyCustomParametersResponse;
 import com.example.demo.response.CopyExclusionRulesResponse;
 import com.example.demo.service.ICompaniesService;
-import com.example.demo.utils.ActiveFlag;
 import com.example.demo.utils.Constants;
 
 @Service
 public class CompaniesService implements ICompaniesService {
-    
-    @Autowired
-    private CompanyRepository companyRepository;
-    
-    @Autowired
-    private CompanyCategoriesRepository companyCategoriesRepository;
-    
-    @Autowired
-    private CompanyCategoriesPreviewRepository companyCategoriesPreviewRepository;
-    
-    @Autowired
-    private CompanyParametersRepository companyParametersRepository;
-    
-    @Autowired
-    private CompanyParametersPreviewRepository companyParametersPreviewRepository;
-    
-    @Autowired
-    private CustomizationParametersRepository customizationParametersRepository;
-    
-    @Override
-    public CompaniesResponse getCompanies(Integer page, Integer limit, String search) {
-        Page<CompanyProjection> companyPage = companyRepository.searchCompanies(search, PageRequest.of(page-1, limit));
 
-        List<CompanyDto> companyDtos = getCompanyDtos(companyPage);
+	@Autowired
+	private CompanyRepository companyRepository;
 
-        Pagination pagination = new Pagination();
-        pagination.setCurrentPage(page);
-        pagination.setItemsPerPage(limit);
-        pagination.setTotalPages(companyPage.getTotalPages());
-        pagination.setTotalItems(companyPage.getTotalElements());
+	@Autowired
+	private CompanyCategoriesRepository companyCategoriesRepository;
 
-        CompaniesResponse response = new CompaniesResponse();
-        response.setData(companyDtos);
-        
-        Meta meta = new Meta();
-        meta.setPagination(pagination);
-        
-        response.setMeta(meta);
+	@Autowired
+	private CompanyCategoriesPreviewRepository companyCategoriesPreviewRepository;
 
-        return response;
-    }
+	@Autowired
+	private CompanyParametersRepository companyParametersRepository;
+
+	@Autowired
+	private CompanyParametersPreviewRepository companyParametersPreviewRepository;
+
+	@Autowired
+	private CustomizationParametersRepository customizationParametersRepository;
+
+	@Autowired
+	private CategoriesRepository categoriesRepository;
+
+	@Override
+	public CompaniesResponse getCompanies(Integer page, Integer limit, String search) {
+		Page<CompanyProjection> companyPage = companyRepository.searchCompanies(search,
+				PageRequest.of(page - 1, limit));
+
+		List<CompanyDto> companyDtos = getCompanyDtos(companyPage);
+
+		Pagination pagination = new Pagination();
+		pagination.setCurrentPage(page);
+		pagination.setItemsPerPage(limit);
+		pagination.setTotalPages(companyPage.getTotalPages());
+		pagination.setTotalItems(companyPage.getTotalElements());
+
+		CompaniesResponse response = new CompaniesResponse();
+		response.setData(companyDtos);
+
+		Meta meta = new Meta();
+		meta.setPagination(pagination);
+
+		response.setMeta(meta);
+
+		return response;
+	}
 
 	@Override
 	public CompanyDetailsResponse getCompanyDetails(BigInteger companyId) {
 		Company company = companyRepository.findById(companyId)
 				.orElseThrow(() -> new CompanyNotFoundException(companyId));
-		
+
 		CompanyDetailsResponse response = new CompanyDetailsResponse();
-		
+
 		response.setId(company.getIdCompany());
 		response.setName(company.getNameCompany());
 		response.setCode(company.getCodeCompany());
-		
+
 		return response;
 	}
 
-    @Override
-    public CompanyExclusionRulesResponse getCompanyExclusionRules(BigInteger companyId, String search) {
-        List<CompanyExclusionRulesProjection> result = companyCategoriesRepository.getCompanyExclusionRules(companyId, search);
-        
-        List<CompanyExclusionRulesDto> exclusionRules = new ArrayList<>();
-        
-        for(CompanyExclusionRulesProjection projection : result) {
-        	CompanyExclusionRulesDto dto = new CompanyExclusionRulesDto();
-        	dto.setId(projection.getPreviewId());
-        	dto.setName(projection.getName());
-        	dto.setTag(projection.getTag());
-        	dto.setIsEnabled(Constants.YES.equals(projection.getIsEnabled()) ? Boolean.TRUE : Boolean.FALSE);
-        	if(projection.getIsEnabled().equals(projection.getIsEnabledPreview())) {
-        		dto.setHasDraft(Boolean.FALSE);
-        		dto.setStatus(Constants.PUBLISHED);
-        	} else {
-        		dto.setHasDraft(Boolean.TRUE);
-        		dto.setStatus(Constants.PENDING_PUBLICATION);
-        		DraftExclusionRules draft = new DraftExclusionRules();
-        		draft.setStatus(Constants.DRAFT);
-        		draft.setIsEnabled(Constants.YES.equals(projection.getIsEnabledPreview()) ? Boolean.TRUE : Boolean.FALSE);
+	@Override
+	public CompanyExclusionRulesResponse getCompanyExclusionRules(BigInteger companyId, String search) {
+		List<CompanyExclusionRulesProjection> result = companyCategoriesRepository.getCompanyExclusionRules(companyId,
+				search);
+		List<CompanyExclusionRulesDto> exclusionRules = new ArrayList<>();
+		for (CompanyExclusionRulesProjection projection : result) {
+			CompanyExclusionRulesDto dto = new CompanyExclusionRulesDto();
+			dto.setId(projection.getId());
+			dto.setName(projection.getName());
+			dto.setTag(projection.getTag());
+			dto.setIsEnabled(projection.getIsEnabled() == 1);
+			boolean hasDraft = projection.getHasDraft() == 1;
+			dto.setHasDraft(hasDraft);
+			dto.setStatus(projection.getStatus());
+
+			if (hasDraft) {
+				DraftExclusionRules draft = new DraftExclusionRules();
+				draft.setStatus(Constants.DRAFT);
+				draft.setIsEnabled(projection.getDraftIsEnabled() == 1);
 				dto.setDraft(draft);
-        	}
-        	exclusionRules.add(dto);
-        }
-        
-        CompanyExclusionRulesResponse response = new CompanyExclusionRulesResponse();
-        response.setData(exclusionRules);
+			}
+			exclusionRules.add(dto);
+		}
 
-        return response;
-    }
+		CompanyExclusionRulesResponse response = new CompanyExclusionRulesResponse();
+		response.setData(exclusionRules);
 
-    private static List<CompanyDto> getCompanyDtos(Page<CompanyProjection> companyPage) {
-        List<CompanyDto> companyDtos = new ArrayList<>();
+		return response;
+	}
 
-        for(CompanyProjection company : companyPage.getContent()) {
+	private static List<CompanyDto> getCompanyDtos(Page<CompanyProjection> companyPage) {
+		List<CompanyDto> companyDtos = new ArrayList<>();
 
-            CompanyDto companyDto = new CompanyDto();
+		for (CompanyProjection company : companyPage.getContent()) {
 
-            companyDto.setId(company.getIdCompany());
-            companyDto.setName(company.getNameCompany());
-            companyDto.setCode(company.getCodeCompany());
+			CompanyDto companyDto = new CompanyDto();
 
-            Configuration configuration = new Configuration();
-           configuration.setHasCustomParameters(company.getHasParameters());
-           configuration.setHasExclusionRules(company.getHasCategory());
+			companyDto.setId(company.getIdCompany());
+			companyDto.setName(company.getNameCompany());
+			companyDto.setCode(company.getCodeCompany());
 
-            companyDto.setConfiguration(configuration);
-            if(Boolean.TRUE.equals(company.getHasCategory())) {
-            	companyDto.setStatus(Constants.DRAFT);
-            } else {
-            	companyDto.setStatus(Constants.PUBLISHED);
-            }
+			Configuration configuration = new Configuration();
+			configuration.setHasCustomParameters(company.getHasParameters());
+			configuration.setHasExclusionRules(company.getHasCategory());
 
-            Actions actions = new Actions();
-            actions.setDetailUrl("/api/v1/companies/".concat(String.valueOf(company.getIdCompany())));
-            companyDto.setActions(actions);
+			companyDto.setConfiguration(configuration);
+			if (Boolean.TRUE.equals(company.getHasCategory())) {
+				companyDto.setStatus(Constants.DRAFT);
+			} else {
+				companyDto.setStatus(Constants.PUBLISHED);
+			}
 
-            companyDtos.add(companyDto);
-        }
-        return companyDtos;
-    }
+			Actions actions = new Actions();
+			actions.setDetailUrl("/api/v1/companies/".concat(String.valueOf(company.getIdCompany())));
+			companyDto.setActions(actions);
+
+			companyDtos.add(companyDto);
+		}
+		return companyDtos;
+	}
 
 	@Override
 	public List<CompanyLookupProjection> getCompanyLookup(BigInteger currentCompanyId) {
@@ -183,67 +186,44 @@ public class CompaniesService implements ICompaniesService {
 
 	@Override
 	@Transactional
-	public CopyExclusionRulesResponse copyExclusionRules(BigInteger companyId, CompanyCreateRequest copyExclusionRulesRequest) {
-//		Company company = companyRepository.findById(companyId)
-//				.orElseThrow(() -> new CompanyNotFoundException(companyId));
-//		
-//		companyCategoriesRepository.deleteByCompanyId(companyId);
-//		companyCategoriesPreviewRepository.deleteByCompanyId(companyId);
-//		
-//		List<CompanyCategories> categoriesToCopy = companyCategoriesRepository.findCategoriesByCompanyId(copyExclusionRulesRequest.getSourceCompanyId());
-//		
-//		for(CompanyCategories category : categoriesToCopy) {
-//			CompanyCategories entity = new CompanyCategories();
-//			entity.setCompany(company);
-//			entity.setCategory(category.getCategory());
-//			entity.setIsEnabled(category.getIsEnabled());
-//			companyCategoriesRepository.save(entity);
-//			
-//			CompanyCategoriesPreview entityPreview = new CompanyCategoriesPreview();
-//			entityPreview.setCompany(company);
-//			entityPreview.setCategory(category.getCategory());
-//			entityPreview.setIsEnabled(category.getIsEnabled());
-//			companyCategoriesPreviewRepository.save(entityPreview);
-//		}
-//		
-//		List<CompanyCategories> copiedExclusions = companyCategoriesRepository.findCategoriesByCompanyId(companyId);
-//		List<CompanyExclusionRulesDto> rules = new ArrayList<>();
-//		
-//		for(CompanyCategories category : copiedExclusions) {
-//			CompanyExclusionRulesDto rule = new CompanyExclusionRulesDto();
-//			rule.setId(category.getId());
-//			rule.setName(category.getCategory().getName());
-//			rule.setTag(category.getCategory().getCode());
-//			rule.setIsEnabled(Constants.YES.equals(category.getIsEnabled().name()) ? Boolean.TRUE : Boolean.FALSE);
-//			rule.setHasDraft(Boolean.FALSE);
-//			rule.setStatus(Constants.PUBLISHED);
-//			rules.add(rule);
-//		}
+	public CopyExclusionRulesResponse copyExclusionRules(BigInteger companyId,
+			CompanyCreateRequest copyExclusionRulesRequest) {
+		companyRepository.findById(companyId)
+				.orElseThrow(() -> new CompanyNotFoundException(companyId));
+
+		companyCategoriesRepository.deleteByCompanyId(companyId);
+		companyCategoriesPreviewRepository.deleteByCompanyId(companyId);
+
+		int copiedCount = companyCategoriesRepository
+				.copyCompanyCategories(copyExclusionRulesRequest.getSourceCompanyId(), companyId);
+		companyCategoriesPreviewRepository.copyCompanyCategoriesPreview(copyExclusionRulesRequest.getSourceCompanyId(), companyId);
 		
+		CompanyExclusionRulesResponse rules =
+	            getCompanyExclusionRules(companyId, null);
+
 		CopyExclusionRulesResponse response = new CopyExclusionRulesResponse();
-//		response.setData(rules);
-//		response.setMessage(Constants.COPY_SUCCESS);
-//		response.setCopiedCount(copiedExclusions.size());
-		
+		response.setData(rules.getData());
+		response.setMessage(Constants.COPY_SUCCESS);
+		response.setCopiedCount(copiedCount);
+
 		return response;
 	}
 
 	@Override
 	@Transactional
 	public void updateDraft(BigInteger companyId, BigInteger ruleId, CreateExclusionDraftRequest createDraftRequest) {
-		if(Boolean.FALSE.equals(createDraftRequest.getIsEnabled())) {
-			Optional<CompanyCategoriesPreview> companyCategoriesPreview = companyCategoriesPreviewRepository.findByCompanyIdAndCategoryId(companyId, ruleId);
-			if(companyCategoriesPreview.isPresent()) {
-				companyCategoriesPreviewRepository.deleteById(companyCategoriesPreview.get().getId());
-			} 
+		Categories category = categoriesRepository.findByBusinessId(ruleId)
+				.orElseThrow(() -> new CategoriesNotFoundException(ruleId));
+		boolean previewExists = companyCategoriesPreviewRepository.existsPreview(companyId, category.getCode()) > 0;
+		if (Boolean.TRUE.equals(createDraftRequest.getIsEnabled())) {
+			if (!previewExists) {
+				companyCategoriesPreviewRepository.insertPreview(companyId, category.getCode());
+			}
 		} else {
-			Optional<CompanyCategories> companyCategories = companyCategoriesRepository.findByCompanyIdAndCategoryId(companyId, ruleId);
-			if(companyCategories.isPresent()) {
-				CompanyCategoriesPreview draft = new CompanyCategoriesPreview();
-				draft.setCompany(companyCategories.get().getCompany());
-				draft.setCategory(companyCategories.get().getCategory());
-				companyCategoriesPreviewRepository.save(draft);
-			} 
+
+			if (previewExists) {
+				companyCategoriesPreviewRepository.deletePreview(companyId, category.getCode());
+			}
 		}
 	}
 
@@ -259,7 +239,8 @@ public class CompaniesService implements ICompaniesService {
 			dto.setId(projection.getId());
 			dto.setTitle(projection.getDescription());
 			dto.setCode(projection.getParameterCode());
-			dto.setVariableName(Constants.PREFIX_VARIABLE.concat(projection.getParameterCode().concat(Constants.SUFFIX_VARIABLE)));
+			dto.setVariableName(
+					Constants.PREFIX_VARIABLE.concat(projection.getParameterCode().concat(Constants.SUFFIX_VARIABLE)));
 			dto.setValue(projection.getParameterValue());
 			if (projection.getParameterValue().equals(projection.getParameterValuePreview())) {
 				dto.setHasDraft(Boolean.FALSE);
@@ -309,18 +290,22 @@ public class CompaniesService implements ICompaniesService {
 	@Override
 	@Transactional
 	public void publishCompanyParameterDraft(BigInteger companyId, BigInteger paramId) {
-		CompanyParametersPreview companyParametersPreviewToPublish = companyParametersPreviewRepository.findById(paramId)
-				.orElseThrow(() -> new CompanyParametersPreviewNotFoundException(paramId));
-		
-		Optional<CompanyParameters> companyParameters = companyParametersRepository.findByCompanyAndCustomizationParameters(companyParametersPreviewToPublish.getCompany(), companyParametersPreviewToPublish.getCustomizationParameters());
-		
-		if(companyParameters.isPresent()) {
+		CompanyParametersPreview companyParametersPreviewToPublish = companyParametersPreviewRepository
+				.findById(paramId).orElseThrow(() -> new CompanyParametersPreviewNotFoundException(paramId));
+
+		Optional<CompanyParameters> companyParameters = companyParametersRepository
+				.findByCompanyAndCustomizationParameters(companyParametersPreviewToPublish.getCompany(),
+						companyParametersPreviewToPublish.getCustomizationParameters());
+
+		if (companyParameters.isPresent()) {
 			companyParameters.get().setParameterValue(companyParametersPreviewToPublish.getParameterValue());
 			companyParametersRepository.save(companyParameters.get());
 		}
-		
-		Optional<CompanyParametersPreview> oldPublished = companyParametersPreviewRepository.findByCompanyAndCustomizationParametersAndIdNot(companyParametersPreviewToPublish.getCompany(), companyParametersPreviewToPublish.getCustomizationParameters(), paramId);
-		if(oldPublished.isPresent()) {
+
+		Optional<CompanyParametersPreview> oldPublished = companyParametersPreviewRepository
+				.findByCompanyAndCustomizationParametersAndIdNot(companyParametersPreviewToPublish.getCompany(),
+						companyParametersPreviewToPublish.getCustomizationParameters(), paramId);
+		if (oldPublished.isPresent()) {
 			companyParametersPreviewRepository.delete(oldPublished.get());
 		}
 	}
@@ -333,48 +318,47 @@ public class CompaniesService implements ICompaniesService {
 				.orElseThrow(() -> new CompanyNotFoundException(companyId));
 		companyParametersRepository.deleteByCompanyId(companyId);
 		companyParametersPreviewRepository.deleteByCompanyId(companyId);
-		
-		List<CompanyParameters> parametersToCopy = companyParametersRepository.findParametersByCompanyId(copyExclusionRulesRequest.getSourceCompanyId());
-		
-		for(CompanyParameters parameterToCopy : parametersToCopy) {
+
+		List<CompanyParameters> parametersToCopy = companyParametersRepository
+				.findParametersByCompanyId(copyExclusionRulesRequest.getSourceCompanyId());
+
+		for (CompanyParameters parameterToCopy : parametersToCopy) {
 			CompanyParameters companyParameter = new CompanyParameters();
 			companyParameter.setCompany(company);
 			companyParameter.setCustomizationParameters(parameterToCopy.getCustomizationParameters());
 			companyParameter.setParameterValue(parameterToCopy.getParameterValue());
 			companyParametersRepository.save(companyParameter);
-			
+
 			CompanyParametersPreview companyParameterPreview = new CompanyParametersPreview();
 			companyParameterPreview.setCompany(company);
 			companyParameterPreview.setCustomizationParameters(parameterToCopy.getCustomizationParameters());
 			companyParameterPreview.setParameterValue(parameterToCopy.getParameterValue());
 			companyParametersPreviewRepository.save(companyParameterPreview);
 		}
-		
+
 		CopyCustomParametersResponse response = new CopyCustomParametersResponse();
 		response.setData(getCompanyCustomParameters(companyId, null).getData());
 		response.setCopiedCount(response.getData().size());
 		response.setMessage(Constants.COPY_SUCCESS);
-		
+
 		return response;
 	}
 
 	@Override
 	@Transactional
 	public void publishExclusionRules(BigInteger companyId, BigInteger ruleId) {
-//		CompanyCategoriesPreview companyCategoriesPreviewToPublish = companyCategoriesPreviewRepository.findById(ruleId)
-//				.orElseThrow(() -> new CompanyCategoriesNotFoundException(ruleId));
-//		
-//		Optional<CompanyCategories> companyCategories = companyCategoriesRepository.findByCompanyAndCategory(companyCategoriesPreviewToPublish.getCompany(), companyCategoriesPreviewToPublish.getCategory());
-//
-//		if(companyCategories.isPresent()) {
-//		companyCategories.get().setIsEnabled(companyCategoriesPreviewToPublish.getIsEnabled());
-//		companyCategoriesRepository.save(companyCategories.get());
-//		}
-//		
-//		Optional<CompanyCategoriesPreview> oldPublished = companyCategoriesPreviewRepository.findByCompanyAndCategoryAndIdNot(companyCategoriesPreviewToPublish.getCompany(), companyCategoriesPreviewToPublish.getCategory(), ruleId);
-//		if(oldPublished.isPresent()) {
-//			companyCategoriesPreviewRepository.delete(oldPublished.get());
-//		}
+		Categories category = categoriesRepository.findByBusinessId(ruleId)
+				.orElseThrow(() -> new CategoriesNotFoundException(ruleId));
+		String categoryCode = category.getCode();
+		boolean published = companyCategoriesRepository.existsCompanyCategory(companyId, categoryCode) > 0;
+		boolean preview = companyCategoriesPreviewRepository.existsPreview(companyId, categoryCode) > 0;
+		if (published && !preview) {
+			companyCategoriesRepository.deleteCompanyCategory(companyId, categoryCode);
+			return;
+		}
+		if (!published && preview) {
+			companyCategoriesRepository.insertCompanyCategory(companyId, categoryCode);
+		}
 	}
 
 	@Override
@@ -383,33 +367,35 @@ public class CompaniesService implements ICompaniesService {
 			AddCustomParametersRequest addCustomParametersRequest) {
 		Company company = companyRepository.findById(companyId)
 				.orElseThrow(() -> new CompanyNotFoundException(companyId));
-		
-		CustomizationParameters customParameter = customizationParametersRepository.findById(addCustomParametersRequest.getParameterCode())
-				.orElseThrow(() -> new CustomizationParametersNotFoundException(addCustomParametersRequest.getParameterCode()));
-		
+
+		CustomizationParameters customParameter = customizationParametersRepository
+				.findById(addCustomParametersRequest.getParameterCode())
+				.orElseThrow(() -> new CustomizationParametersNotFoundException(
+						addCustomParametersRequest.getParameterCode()));
+
 		CompanyParameters companyParameters = new CompanyParameters();
 		companyParameters.setCompany(company);
 		companyParameters.setCustomizationParameters(customParameter);
 		companyParameters.setParameterValue(addCustomParametersRequest.getValue());
 		companyParametersRepository.save(companyParameters);
-		
+
 		CompanyParametersPreview companyParameterPreview = new CompanyParametersPreview();
 		companyParameterPreview.setCompany(company);
 		companyParameterPreview.setCustomizationParameters(customParameter);
 		companyParameterPreview.setParameterValue(addCustomParametersRequest.getValue());
 		companyParametersPreviewRepository.save(companyParameterPreview);
-		
+
 		CompanyParameterDto dto = new CompanyParameterDto();
 		dto.setId(companyParameters.getId());
 		dto.setTitle(companyParameters.getCustomizationParameters().getDescription());
 		dto.setCode(companyParameters.getCustomizationParameters().getCode());
-		dto.setVariableName(Constants.PREFIX_VARIABLE.concat(companyParameters.getCustomizationParameters().getCode().concat(Constants.SUFFIX_VARIABLE)));
+		dto.setVariableName(Constants.PREFIX_VARIABLE
+				.concat(companyParameters.getCustomizationParameters().getCode().concat(Constants.SUFFIX_VARIABLE)));
 		dto.setValue(companyParameters.getParameterValue());
 		dto.setHasDraft(Boolean.FALSE);
 		dto.setStatus(Constants.PUBLISHED);
-		
+
 		return dto;
 	}
-	
-	
+
 }

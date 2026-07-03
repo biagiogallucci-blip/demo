@@ -25,11 +25,9 @@ import com.example.demo.model.ExclusionRulesDto;
 import com.example.demo.model.Meta;
 import com.example.demo.model.Pagination;
 import com.example.demo.projection.CategoriesWithDraftProjection;
-import com.example.demo.projection.CloneExclusionRuleProjection;
 import com.example.demo.projection.CompaniesByExclusionRuleProjection;
 import com.example.demo.projection.CompanyLookupProjection;
 import com.example.demo.projection.ExclusionRulesProjection;
-import com.example.demo.projection.PublishExclusionRuleProjection;
 import com.example.demo.repository.CategoriesRepository;
 import com.example.demo.repository.CompanyCategoriesPreviewRepository;
 import com.example.demo.repository.CompanyCategoriesRepository;
@@ -41,7 +39,6 @@ import com.example.demo.response.CloneExclusionRuleResponse;
 import com.example.demo.response.CompaniesByExclusionRuleResponse;
 import com.example.demo.response.CreateExclusionRuleResponse;
 import com.example.demo.response.ExclusionRulesResponse;
-import com.example.demo.service.ICompaniesService;
 import com.example.demo.service.IExclusionRulesService;
 import com.example.demo.utils.ActiveFlag;
 import com.example.demo.utils.Constants;
@@ -60,9 +57,6 @@ public class ExclusionRulesService implements IExclusionRulesService {
 
 	@Autowired
 	private CompanyCategoriesPreviewRepository companyCategoriesPreviewRepository;
-	
-	@Autowired
-	private ICompaniesService companiesService;
 
 	@Override
 	public ExclusionRulesResponse getExclusionRules(Integer page, Integer limit, String search, String status) {

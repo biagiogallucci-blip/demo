@@ -28,8 +28,6 @@ public interface CompanyCategoriesPreviewRepository extends JpaRepository<Compan
 	@Query("SELECT ccp FROM CompanyCategoriesPreview ccp WHERE ccp.company.idCompany = :idCompany AND ccp.category.id = :categoryId") 
 	Optional<CompanyCategoriesPreview> findByCompanyIdAndCategoryId(@Param("idCompany") BigInteger idCompany, @Param("categoryId") BigInteger categoryId);
 	
-//	Boolean existsByCompanyAndCategoryAndIsEnabled(Company company, Categories category, ActiveFlag isEnabled);
-	
 	@Query("SELECT cc.id AS companyCategoriesId FROM CompanyCategories cc JOIN cc.category c WHERE c.id = :categoryId AND NOT EXISTS (SELECT 1 FROM CompanyCategoriesPreview ccp WHERE ccp.company.id = cc.company.id AND ccp.category.code = c.code)")
 	List<BigInteger> findExclusionRuleToPublish(@Param("categoryId") BigInteger categoryId);
 	
@@ -41,4 +39,23 @@ public interface CompanyCategoriesPreviewRepository extends JpaRepository<Compan
 	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW (ID, COMPANY_ID, CATEGORY_CODE) SELECT XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW_SEQ.NEXTVAL, COMPANY_ID, :newCode FROM XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW WHERE CATEGORY_CODE = :oldCode", nativeQuery = true)
 	void cloneCompanyCategoriesPreview(@Param("oldCode") String oldCode,
 	                                   @Param("newCode") String newCode);
+	
+	@Query(value = "SELECT COUNT(*) FROM XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW WHERE COMPANY_ID = :companyId AND CATEGORY_CODE = :categoryCode", nativeQuery = true)
+	long existsPreview(@Param("companyId") BigInteger companyId,
+	                   @Param("categoryCode") String categoryCode);
+	
+	@Modifying
+	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW (ID, COMPANY_ID, CATEGORY_CODE) VALUES (XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW_SEQ.NEXTVAL, :companyId, :categoryCode)", nativeQuery = true)
+	void insertPreview(@Param("companyId") BigInteger companyId,
+	                   @Param("categoryCode") String categoryCode);
+	
+	@Modifying
+	@Query(value = "DELETE FROM XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW WHERE COMPANY_ID = :companyId AND CATEGORY_CODE = :categoryCode", nativeQuery = true)
+	void deletePreview(@Param("companyId") BigInteger companyId,
+	                   @Param("categoryCode") String categoryCode);
+	
+	@Modifying
+	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW (ID, COMPANY_ID, CATEGORY_CODE) SELECT XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW_SEQ.NEXTVAL, :targetCompanyId, CATEGORY_CODE FROM XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW WHERE COMPANY_ID = :sourceCompanyId", nativeQuery = true)
+	void copyCompanyCategoriesPreview(@Param("sourceCompanyId") BigInteger sourceCompanyId,
+	                                  @Param("targetCompanyId") BigInteger targetCompanyId);
 }

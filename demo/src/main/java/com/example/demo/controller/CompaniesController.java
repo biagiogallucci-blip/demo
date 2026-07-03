@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -64,7 +63,7 @@ public class CompaniesController {
         return companiesService.copyExclusionRules(companyId, copyExclusionRulesRequest);
     }
     
-    @PatchMapping("/{companyId}/exclusion-rules/{ruleId}")
+    @PostMapping("/{companyId}/exclusion-rules/{ruleId}")
     public void updateDraft (@PathVariable("companyId") BigInteger companyId, @PathVariable("ruleId") BigInteger ruleId,
     		@RequestBody CreateExclusionDraftRequest createDraftRequest) {
     	companiesService.updateDraft(companyId, ruleId, createDraftRequest);
