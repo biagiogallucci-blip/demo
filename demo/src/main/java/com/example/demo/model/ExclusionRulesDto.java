@@ -3,6 +3,8 @@ package com.example.demo.model;
 import java.math.BigInteger;
 import java.sql.Timestamp;
 
+import com.example.demo.response.Stats;
+
 public class ExclusionRulesDto {
 	
 	private BigInteger id;
@@ -13,6 +15,7 @@ public class ExclusionRulesDto {
 	private String status;
 	private String links;
 	private Timestamp createdAt;
+	private Stats stats;
 	
 	public BigInteger getId() {
 		return id;
@@ -61,5 +64,11 @@ public class ExclusionRulesDto {
 	}
 	public void setCreatedAt(Timestamp createdAt) {
 		this.createdAt = createdAt;
+	}
+	public Stats getStats() {
+		return stats;
+	}
+	public void setStats(Stats stats) {
+		this.stats = stats;
 	}
 }

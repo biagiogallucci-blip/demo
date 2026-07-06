@@ -7,6 +7,7 @@ public class CustomParametersDetailsResponse {
     private String title;
     private String code;
     private String placeholder;
+    private Stats stats;
     
 	public BigInteger getId() {
 		return id;
@@ -31,5 +32,11 @@ public class CustomParametersDetailsResponse {
 	}
 	public void setPlaceholder(String placeholder) {
 		this.placeholder = placeholder;
+	}
+	public Stats getStats() {
+		return stats;
+	}
+	public void setStats(Stats stats) {
+		this.stats = stats;
 	}
 }

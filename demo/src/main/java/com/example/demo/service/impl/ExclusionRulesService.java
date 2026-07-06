@@ -39,6 +39,7 @@ import com.example.demo.response.CloneExclusionRuleResponse;
 import com.example.demo.response.CompaniesByExclusionRuleResponse;
 import com.example.demo.response.CreateExclusionRuleResponse;
 import com.example.demo.response.ExclusionRulesResponse;
+import com.example.demo.response.Stats;
 import com.example.demo.service.IExclusionRulesService;
 import com.example.demo.utils.ActiveFlag;
 import com.example.demo.utils.Constants;
@@ -150,6 +151,9 @@ public class ExclusionRulesService implements IExclusionRulesService {
 		} else {
 			response.setHasDraft(Boolean.FALSE);
 		}
+		Stats stats = new Stats();
+		stats.setPendingChanges(projection.getPendingCount().intValue());
+		response.setStats(stats);
 	    return response;
 	}
 

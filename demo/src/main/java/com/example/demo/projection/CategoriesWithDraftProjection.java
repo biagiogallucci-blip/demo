@@ -6,4 +6,5 @@ public interface CategoriesWithDraftProjection {
 	
 	Categories getCategory();
 	String getStatus();
+	Long getPendingCount();
 }

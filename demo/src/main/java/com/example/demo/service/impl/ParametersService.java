@@ -39,6 +39,7 @@ import com.example.demo.response.CompaniesWithCustomParameterResponse;
 import com.example.demo.response.CreateCustomParametersResponse;
 import com.example.demo.response.CustomParametersDetailsResponse;
 import com.example.demo.response.CustomParametersResponse;
+import com.example.demo.response.Stats;
 import com.example.demo.service.IParametersService;
 import com.example.demo.utils.Constants;
 
@@ -170,12 +171,16 @@ public class ParametersService implements IParametersService {
 	@Override
 	public CustomParametersDetailsResponse getCustomParametersDetails(BigInteger paramId) {
 		CustomizationParameters result = customizationParametersRepository.findById(paramId).orElseThrow(() -> new CustomizationParametersNotFoundException(paramId));
+		Integer pendingChange = companyParametersPreviewRepository.countByParameterCode(result.getCode());
 		
 		CustomParametersDetailsResponse response = new CustomParametersDetailsResponse();
         response.setId(result.getId());
 		response.setTitle(result.getDescription());
 		response.setCode(result.getCode());
 		response.setPlaceholder(Constants.PREFIX_VARIABLE.concat(result.getCode()).concat(Constants.SUFFIX_VARIABLE));
+		Stats stats = new Stats();
+		stats.setPendingChanges(pendingChange);
+		response.setStats(stats);
 		
 		return response;
 	}

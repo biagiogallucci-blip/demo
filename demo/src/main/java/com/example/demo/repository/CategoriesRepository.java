@@ -39,11 +39,14 @@ public interface CategoriesRepository extends JpaRepository<Categories, String> 
 			nativeQuery=true)
 			Page<ExclusionRulesProjection> getExclusionRules(@Param("search") String search, @Param("status") String status, Pageable pageable);
 	
-	@Query("SELECT c AS category, CASE WHEN (EXISTS (SELECT 1 FROM CompanyCategories cc WHERE cc.category.code = c.code AND NOT EXISTS "
-			+ "(SELECT 1 FROM CompanyCategoriesPreview cp WHERE cp.category.code = cc.category.code AND cp.company.id = cc.company.id)) "
-			+ "OR EXISTS (SELECT 1 FROM CompanyCategoriesPreview cp WHERE cp.category.code = c.code AND NOT EXISTS (SELECT 1 FROM CompanyCategories cc "
-			+ "WHERE cc.category.code = cp.category.code AND cc.company.id = cp.company.id))) THEN 'DRAFT' ELSE 'PUBLISHED' END AS status "
-			+ "FROM Categories c WHERE c.id = :id")
+	@Query("SELECT c AS category, CASE WHEN (EXISTS (SELECT 1 FROM CompanyCategories cc WHERE cc.category.code = c.code AND NOT EXISTS (SELECT 1 FROM "
+			+ "CompanyCategoriesPreview cp WHERE cp.category.code = cc.category.code AND cp.company.id = cc.company.id)) OR EXISTS (SELECT 1 FROM "
+			+ "CompanyCategoriesPreview cp WHERE cp.category.code = c.code AND NOT EXISTS (SELECT 1 FROM CompanyCategories cc WHERE cc.category.code = "
+			+ "cp.category.code AND cc.company.id = cp.company.id))) THEN 'DRAFT' ELSE 'PUBLISHED' END AS status, ((SELECT COUNT(cc) FROM CompanyCategories cc "
+			+ "WHERE cc.category.code = c.code AND NOT EXISTS (SELECT 1 FROM CompanyCategoriesPreview cp WHERE cp.category.code = cc.category.code AND "
+			+ "cp.company.id = cc.company.id)) + (SELECT COUNT(cp) FROM CompanyCategoriesPreview cp WHERE cp.category.code = c.code AND NOT EXISTS (SELECT 1 "
+			+ "FROM CompanyCategories cc WHERE cc.category.code = cp.category.code AND cc.company.id = cp.company.id))) AS pendingCount FROM Categories c "
+			+ "WHERE c.id = :id")
 	Optional<CategoriesWithDraftProjection> getByRuleId(@Param("id") BigInteger id);
 	
 	@Query(value = "SELECT * FROM XRBNPPUSR.CATEGORIES c WHERE c.ID = :id", nativeQuery = true)

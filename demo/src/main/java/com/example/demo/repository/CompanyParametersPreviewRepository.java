@@ -27,6 +27,9 @@ public interface CompanyParametersPreviewRepository extends JpaRepository<Compan
 	           "WHERE cp.company = :company AND cp.customizationParameters = :customizationParameters")
 	Integer countByCompanyAndCustomizationParameters(@Param("company") Company company, @Param("customizationParameters") CustomizationParameters customizationParameters);
 	
+	@Query("SELECT COUNT(cp) FROM CompanyParametersPreview cp WHERE cp.customizationParameters.code = :parameterCode")
+	Integer countByParameterCode(@Param("parameterCode") String parameterCode);
+	
 	Boolean existsByCompanyAndCustomizationParametersAndParameterValue(Company company, CustomizationParameters customizationParameters, String parameterValue);
 
 	Optional<CompanyParametersPreview> findByCompanyAndCustomizationParametersAndIdNot(Company company,
