@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.entity.Categories;
 import com.example.demo.entity.Company;
@@ -19,7 +18,6 @@ import com.example.demo.entity.CompanyCategoriesPreview;
 public interface CompanyCategoriesPreviewRepository extends JpaRepository<CompanyCategoriesPreview, BigInteger>{
 	
 	@Modifying
-    @Transactional
     @Query("DELETE FROM CompanyCategoriesPreview cc WHERE cc.company.idCompany = :companyId")
 	void deleteByCompanyId(@Param("companyId") BigInteger companyId);
 	

@@ -4,11 +4,9 @@ import java.math.BigInteger;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -59,7 +57,7 @@ public class CustomParametersController {
 	    return parametersService.getCompaniesWithCustomParameter(paramId, search, page, limit);
 	}
 	
-	@DeleteMapping("/{paramId}/companies/{companyId}")
+	@GetMapping("/{paramId}/companies/{companyId}")
 	public void deleteCustomParameters(@PathVariable BigInteger paramId, @PathVariable BigInteger companyId) {
 		parametersService.deleteCustomParameters(paramId, companyId);
 	}
@@ -80,7 +78,7 @@ public class CustomParametersController {
 		parametersService.saveCustomParametersForCompany(paramId, saveCustomParametersForCompanyRequest);
 	}
 	
-	@PutMapping("/{paramId}/companies/{companyId}")
+	@PostMapping("/{paramId}/companies/{companyId}")
 	public void putCustomParametersValue(@PathVariable BigInteger paramId, 
 			@PathVariable BigInteger companyId, @RequestBody CreateParameterDraftRequest createParameterDraftRequest) {
 		parametersService.putCustomParametersValue(paramId, companyId, createParameterDraftRequest.getValue());

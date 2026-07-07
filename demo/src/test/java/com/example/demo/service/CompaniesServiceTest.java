@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -21,6 +20,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -244,42 +244,75 @@ class CompaniesServiceTest {
 
 	@Test
 	void shouldCreateNewDraft() {
-		CompanyParametersPreview preview = mock(CompanyParametersPreview.class);
+	    BigInteger companyId = BigInteger.ONE;
+	    BigInteger paramId = BigInteger.ONE;
 
-		when(companyParametersPreviewRepository.findById(any())).thenReturn(Optional.of(preview));
+	    Company company = new Company();
+	    CustomizationParameters param = new CustomizationParameters();
 
-		when(preview.getParameterValue()).thenReturn("OLD");
-		when(preview.getCompany()).thenReturn(mock(Company.class));
-		when(preview.getCustomizationParameters()).thenReturn(mock(CustomizationParameters.class));
+	    CompanyParameters companyParameters = new CompanyParameters();
+	    companyParameters.setParameterValue("OLD");
+	    companyParameters.setCompany(company);
+	    companyParameters.setCustomizationParameters(param);
 
-		when(companyParametersPreviewRepository.countByCompanyAndCustomizationParameters(any(), any())).thenReturn(1);
+	    when(companyRepository.findById(companyId))
+	            .thenReturn(Optional.of(company));
 
-		CreateParameterDraftRequest request = new CreateParameterDraftRequest();
-		request.setValue("NEW");
+	    when(companyParametersRepository.findById(paramId))
+	            .thenReturn(Optional.of(companyParameters));
 
-		service.createCompanyParameterDraft(BigInteger.ONE, BigInteger.ONE, request);
+	    when(companyParametersPreviewRepository.findByCompanyAndCustomizationParameters(company, param))
+	            .thenReturn(Optional.empty());
 
-		verify(companyParametersPreviewRepository).save(any());
+	    CreateParameterDraftRequest request = new CreateParameterDraftRequest();
+	    request.setValue("NEW");
+
+	    service.createCompanyParameterDraft(companyId, paramId, request);
+
+	    ArgumentCaptor<CompanyParametersPreview> captor =
+	            ArgumentCaptor.forClass(CompanyParametersPreview.class);
+
+	    verify(companyParametersPreviewRepository).save(captor.capture());
+
+	    CompanyParametersPreview saved = captor.getValue();
+
+	    assertEquals(company, saved.getCompany());
+	    assertEquals(param, saved.getCustomizationParameters());
+	    assertEquals("NEW", saved.getParameterValue());
 	}
 
 	@Test
 	void shouldPublishParameterDraft() {
-		CompanyParametersPreview preview = mock(CompanyParametersPreview.class);
+	    BigInteger companyId = BigInteger.ONE;
+	    BigInteger paramId = BigInteger.ONE;
 
-		when(companyParametersPreviewRepository.findById(any())).thenReturn(Optional.of(preview));
+	    Company company = new Company();
+	    company.setIdCompany(companyId);
 
-		when(preview.getCompany()).thenReturn(mock(Company.class));
-		when(preview.getCustomizationParameters()).thenReturn(mock(CustomizationParameters.class));
-		when(preview.getParameterValue()).thenReturn("VAL");
+	    CustomizationParameters customizationParameters = new CustomizationParameters();
 
-		CompanyParameters parameter = new CompanyParameters();
+	    CompanyParametersPreview preview = new CompanyParametersPreview();
+	    preview.setParameterValue("VAL");
 
-		when(companyParametersRepository.findByCompanyAndCustomizationParameters(any(), any()))
-				.thenReturn(Optional.of(parameter));
+	    CompanyParameters parameter = new CompanyParameters();
+	    parameter.setCompany(company);
+	    parameter.setCustomizationParameters(customizationParameters);
+	    parameter.setParameterValue("OLD");
 
-		service.publishCompanyParameterDraft(BigInteger.ONE, BigInteger.ONE);
+	    when(companyParametersRepository.findById(paramId))
+	            .thenReturn(Optional.of(parameter));
 
-		verify(companyParametersRepository).save(any());
+	    when(companyParametersPreviewRepository.findByCompanyAndCustomizationParameters(
+	            company,
+	            customizationParameters))
+	            .thenReturn(Optional.of(preview));
+
+	    service.publishCompanyParameterDraft(companyId, paramId);
+
+	    assertEquals("VAL", parameter.getParameterValue());
+
+	    verify(companyParametersRepository).save(parameter);
+	    verify(companyParametersPreviewRepository).delete(preview);
 	}
 
 	@Test
@@ -326,7 +359,6 @@ class CompaniesServiceTest {
 		assertEquals("PARAM_1", dto.getCode());
 
 		verify(companyParametersRepository).save(any());
-		verify(companyParametersPreviewRepository).save(any());
 	}
 
 	@Test

@@ -136,25 +136,17 @@ public class ParametersService implements IParametersService {
 		customParameter.setId(customizationParametersRepository.getNextId());
 		customizationParametersRepository.saveAndFlush(customParameter);
 		
-		List<Company> companies = new ArrayList<>();
-		
-		if (Boolean.TRUE.equals(createCustomParametersRequest.getApplyToAllCompanies())) {
-			companies = companyRepository.findAll();
-			for (Company company : companies) {
-				CompanyParameters entity = new CompanyParameters();
-				entity.setCompany(company);
-				entity.setCustomizationParameters(customParameter);
-				entity.setParameterValue(createCustomParametersRequest.getValue());
-				companyParametersRepository.save(entity);
-				
-				CompanyParametersPreview entityPreview = new CompanyParametersPreview();
-				entityPreview.setCompany(company);
-				entityPreview.setCustomizationParameters(customParameter);
-				entityPreview.setParameterValue(createCustomParametersRequest.getValue());
-				companyParametersPreviewRepository.save(entityPreview);
-				
-			}
-		}
+		int companiesCount = 0;
+
+	    if (Boolean.TRUE.equals(createCustomParametersRequest.getApplyToAllCompanies())) {
+	        companiesCount = companyParametersRepository.insertParametersForAllCompanies(
+	                customParameter.getCode(),
+	                createCustomParametersRequest.getValue());
+
+	        companyParametersPreviewRepository.insertParametersPreviewForAllCompanies(
+	                customParameter.getCode(),
+	                createCustomParametersRequest.getValue());
+	    }
 		
 		CreateCustomParametersResponse response = new CreateCustomParametersResponse();
 		response.setId(customParameter.getId());
@@ -163,7 +155,7 @@ public class ParametersService implements IParametersService {
 		response.setPlaceholder(Constants.PREFIX_VARIABLE.concat(customParameter.getCode()).concat(Constants.SUFFIX_VARIABLE));
 		response.setStatus(Constants.PUBLISHED);
 		response.setValue(createCustomParametersRequest.getValue());
-		response.setCompaniesCount(companies.size());
+		response.setCompaniesCount(companiesCount);
 		
 		return response;
 	}
@@ -237,7 +229,6 @@ public class ParametersService implements IParametersService {
 	@Override
 	@Transactional
 	public void deleteCustomParameters(BigInteger paramId, BigInteger companyId) {
-		companyParametersPreviewRepository.deleteByCompanyAndParamId(companyId, paramId);
 		companyParametersRepository.deleteByCompanyAndParamId(companyId, paramId);
 	}
 
@@ -246,7 +237,6 @@ public class ParametersService implements IParametersService {
 	public void publishCustomParameters(BigInteger paramId) {
 		companyParametersRepository.updatePublishedFromDraft(paramId);
 	    companyParametersPreviewRepository.deletePreview(paramId);
-	    companyParametersPreviewRepository.insertPreview(paramId);	
 	}
 
 	@Override
@@ -301,32 +291,24 @@ public class ParametersService implements IParametersService {
 				.findByCompanyAndCustomizationParameters(company, param)
 				.orElseThrow(() -> new CompanyParametersNotFoundException(paramId));
 
-		List<CompanyParametersPreview> previews = companyParametersPreviewRepository
-				.findByCompanyAndCustomizationParameters(company, param);
+		Optional<CompanyParametersPreview> previewOpt =
+	            companyParametersPreviewRepository.findByCompanyAndCustomizationParameters(company, param);
 
 		if (companyParameters.getParameterValue().equals(value)) {
-			previews.stream().filter(p -> !p.getParameterValue().equals(companyParameters.getParameterValue()))
-					.forEach(companyParametersPreviewRepository::delete);
-
-			return;
+			previewOpt.ifPresent(companyParametersPreviewRepository::delete);
+	        return;
 		}
 		
-	    Optional<CompanyParametersPreview> draftOpt =
-	            previews.stream()
-	                    .filter(p -> !p.getParameterValue().equals(companyParameters.getParameterValue()))
-	                    .findFirst();
-
-	    if (draftOpt.isPresent()) {
-	        CompanyParametersPreview draft = draftOpt.get();
-	        draft.setParameterValue(value);
-	        companyParametersPreviewRepository.save(draft);
-
+		if (previewOpt.isPresent()) {
+	        CompanyParametersPreview preview = previewOpt.get();
+	        preview.setParameterValue(value);
+	        companyParametersPreviewRepository.save(preview);
 	    } else {
-	        CompanyParametersPreview draft = new CompanyParametersPreview();
-	        draft.setCompany(company);
-	        draft.setCustomizationParameters(param);
-	        draft.setParameterValue(value);
-	        companyParametersPreviewRepository.save(draft);
+	        CompanyParametersPreview preview = new CompanyParametersPreview();
+	        preview.setCompany(company);
+	        preview.setCustomizationParameters(param);
+	        preview.setParameterValue(value);
+	        companyParametersPreviewRepository.save(preview);
 	    }
 	}
 }

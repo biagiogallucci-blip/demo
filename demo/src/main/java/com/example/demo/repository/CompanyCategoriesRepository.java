@@ -38,7 +38,6 @@ public interface CompanyCategoriesRepository extends JpaRepository<CompanyCatego
 	List<CompanyExclusionRulesProjection> getCompanyExclusionRules(@Param("idCompany") BigInteger companyId, @Param("search") String search);
 
 	@Modifying
-	@Transactional
 	@Query("DELETE FROM CompanyCategories cc WHERE cc.company.idCompany = :companyId")
 	void deleteByCompanyId(@Param("companyId") BigInteger companyId);
 
@@ -63,7 +62,6 @@ public interface CompanyCategoriesRepository extends JpaRepository<CompanyCatego
 	Optional<CompanyCategories> findByCompanyIdAndCategoryId(@Param("idCompany") BigInteger idCompany, @Param("categoryId") BigInteger categoryId);
 	
 	@Modifying
-	@Transactional
 	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_CATEGORIES (ID, COMPANY_ID, CATEGORY_CODE) SELECT XRBNPPUSR.COMPANY_CATEGORIES_SEQ.NEXTVAL, c.ID_COMPANY, :categoryCode FROM XRBNPPUSR.COMPANY c", nativeQuery = true)
 	void insertCategoriesForAllCompanies(@Param("categoryCode") String categoryCode);
 	

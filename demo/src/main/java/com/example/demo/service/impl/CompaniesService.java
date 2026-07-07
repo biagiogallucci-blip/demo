@@ -263,51 +263,59 @@ public class CompaniesService implements ICompaniesService {
 	}
 
 	@Override
+	@Transactional
 	public void createCompanyParameterDraft(BigInteger companyId, BigInteger paramId,
 			CreateParameterDraftRequest createDraftRequest) {
-		CompanyParametersPreview companyParameters = companyParametersPreviewRepository.findById(paramId)
-				.orElseThrow(() -> new CompanyParametersNotFoundException(paramId));
+		Company company = companyRepository.findById(companyId)
+				.orElseThrow(() -> new CompanyNotFoundException(companyId));
 
-		if (!createDraftRequest.getValue().equals(companyParameters.getParameterValue())) {
-			if (companyParametersPreviewRepository.countByCompanyAndCustomizationParameters(
-					companyParameters.getCompany(), companyParameters.getCustomizationParameters()) == 1) {
-				CompanyParametersPreview newDraft = new CompanyParametersPreview();
-				newDraft.setCompany(companyParameters.getCompany());
-				newDraft.setCustomizationParameters(companyParameters.getCustomizationParameters());
-				newDraft.setParameterValue(createDraftRequest.getValue());
-				companyParametersPreviewRepository.save(newDraft);
-			} else if (Boolean.TRUE.equals(companyParametersPreviewRepository
-					.existsByCompanyAndCustomizationParametersAndParameterValue(companyParameters.getCompany(),
-							companyParameters.getCustomizationParameters(), createDraftRequest.getValue()))) {
-				companyParametersPreviewRepository.deleteById(paramId);
-			} else {
-				companyParameters.setParameterValue(createDraftRequest.getValue());
-				companyParametersPreviewRepository.save(companyParameters);
-			}
+		CompanyParameters companyParameters = companyParametersRepository
+				.findById(paramId).orElseThrow(() -> new CompanyParametersNotFoundException(paramId));
+
+		Optional<CompanyParametersPreview> previewOpt =
+	            companyParametersPreviewRepository.findByCompanyAndCustomizationParameters(company, companyParameters.getCustomizationParameters());
+
+		if (companyParameters.getParameterValue().equals(createDraftRequest.getValue())) {
+			previewOpt.ifPresent(companyParametersPreviewRepository::delete);
+	        return;
 		}
+		
+		if (previewOpt.isPresent()) {
+	        CompanyParametersPreview preview = previewOpt.get();
+	        preview.setParameterValue(createDraftRequest.getValue());
+	        companyParametersPreviewRepository.save(preview);
+	    } else {
+	        CompanyParametersPreview preview = new CompanyParametersPreview();
+	        preview.setCompany(company);
+	        preview.setCustomizationParameters(companyParameters.getCustomizationParameters());
+	        preview.setParameterValue(createDraftRequest.getValue());
+	        companyParametersPreviewRepository.save(preview);
+	    }
 	}
 
 	@Override
 	@Transactional
 	public void publishCompanyParameterDraft(BigInteger companyId, BigInteger paramId) {
-		CompanyParametersPreview companyParametersPreviewToPublish = companyParametersPreviewRepository
-				.findById(paramId).orElseThrow(() -> new CompanyParametersPreviewNotFoundException(paramId));
+		CompanyParameters companyParameter = companyParametersRepository.findById(paramId)
+	            .orElseThrow(() -> new CompanyParametersNotFoundException(paramId));
 
-		Optional<CompanyParameters> companyParameters = companyParametersRepository
-				.findByCompanyAndCustomizationParameters(companyParametersPreviewToPublish.getCompany(),
-						companyParametersPreviewToPublish.getCustomizationParameters());
+	    if (!companyParameter.getCompany().getIdCompany().equals(companyId)) {
+	        throw new CompanyParametersNotFoundException(paramId);
+	    }
 
-		if (companyParameters.isPresent()) {
-			companyParameters.get().setParameterValue(companyParametersPreviewToPublish.getParameterValue());
-			companyParametersRepository.save(companyParameters.get());
-		}
+	    Optional<CompanyParametersPreview> previewOpt =
+	            companyParametersPreviewRepository.findByCompanyAndCustomizationParameters(
+	                    companyParameter.getCompany(),
+	                    companyParameter.getCustomizationParameters());
 
-		Optional<CompanyParametersPreview> oldPublished = companyParametersPreviewRepository
-				.findByCompanyAndCustomizationParametersAndIdNot(companyParametersPreviewToPublish.getCompany(),
-						companyParametersPreviewToPublish.getCustomizationParameters(), paramId);
-		if (oldPublished.isPresent()) {
-			companyParametersPreviewRepository.delete(oldPublished.get());
-		}
+	    if (previewOpt.isPresent()) {
+	        CompanyParametersPreview preview = previewOpt.get();
+
+	        companyParameter.setParameterValue(preview.getParameterValue());
+	        companyParametersRepository.save(companyParameter);
+
+	        companyParametersPreviewRepository.delete(preview);
+	    }
 	}
 
 	@Override
@@ -378,12 +386,6 @@ public class CompaniesService implements ICompaniesService {
 		companyParameters.setCustomizationParameters(customParameter);
 		companyParameters.setParameterValue(addCustomParametersRequest.getValue());
 		companyParametersRepository.save(companyParameters);
-
-		CompanyParametersPreview companyParameterPreview = new CompanyParametersPreview();
-		companyParameterPreview.setCompany(company);
-		companyParameterPreview.setCustomizationParameters(customParameter);
-		companyParameterPreview.setParameterValue(addCustomParametersRequest.getValue());
-		companyParametersPreviewRepository.save(companyParameterPreview);
 
 		CompanyParameterDto dto = new CompanyParameterDto();
 		dto.setId(companyParameters.getId());

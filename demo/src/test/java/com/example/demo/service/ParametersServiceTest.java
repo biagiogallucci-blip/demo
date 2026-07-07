@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,6 +16,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -136,14 +138,17 @@ class ParametersServiceTest {
         when(customizationParametersRepository.getNextId())
                 .thenReturn(BigInteger.ONE);
 
-        Company company = new Company();
-        when(companyRepository.findAll()).thenReturn(List.of(company));
+        when(companyParametersRepository.insertParametersForAllCompanies("CODE", "VAL"))
+                .thenReturn(1);
 
         CreateCustomParametersResponse response =
                 service.createCustomParameter(request);
 
-        verify(companyParametersRepository).save(any());
-        verify(companyParametersPreviewRepository).save(any());
+        verify(companyParametersRepository)
+                .insertParametersForAllCompanies("CODE", "VAL");
+
+        verify(companyParametersPreviewRepository)
+                .insertParametersPreviewForAllCompanies("CODE", "VAL");
 
         assertEquals(1, response.getCompaniesCount());
     }
@@ -234,10 +239,6 @@ class ParametersServiceTest {
     @Test
     void shouldDeleteCustomParameters() {
         service.deleteCustomParameters(BigInteger.ONE, BigInteger.TWO);
-
-        verify(companyParametersPreviewRepository)
-                .deleteByCompanyAndParamId(BigInteger.TWO, BigInteger.ONE);
-
         verify(companyParametersRepository)
                 .deleteByCompanyAndParamId(BigInteger.TWO, BigInteger.ONE);
     }
@@ -248,7 +249,6 @@ class ParametersServiceTest {
 
         verify(companyParametersRepository).updatePublishedFromDraft(BigInteger.ONE);
         verify(companyParametersPreviewRepository).deletePreview(BigInteger.ONE);
-        verify(companyParametersPreviewRepository).insertPreview(BigInteger.ONE);
     }
 
     @Test
@@ -309,7 +309,7 @@ class ParametersServiceTest {
 
     @Test
     void shouldDeleteDraft_whenSameValue() {
-        Company company = new Company();
+    	Company company = new Company();
         CustomizationParameters param = new CustomizationParameters();
 
         CompanyParameters cp = new CompanyParameters();
@@ -320,21 +320,25 @@ class ParametersServiceTest {
 
         when(companyRepository.findById(any()))
                 .thenReturn(Optional.of(company));
+
         when(customizationParametersRepository.findById(any(BigInteger.class)))
                 .thenReturn(Optional.of(param));
+
         when(companyParametersRepository.findByCompanyAndCustomizationParameters(any(), any()))
                 .thenReturn(Optional.of(cp));
+
         when(companyParametersPreviewRepository.findByCompanyAndCustomizationParameters(any(), any()))
-                .thenReturn(List.of(preview));
+                .thenReturn(Optional.of(preview));
 
         service.putCustomParametersValue(BigInteger.ONE, BigInteger.ONE, "A");
 
         verify(companyParametersPreviewRepository).delete(preview);
+        verify(companyParametersPreviewRepository, never()).save(any());
     }
 
     @Test
     void shouldUpdateExistingDraft() {
-        Company company = new Company();
+    	Company company = new Company();
         CustomizationParameters param = new CustomizationParameters();
 
         CompanyParameters cp = new CompanyParameters();
@@ -345,21 +349,27 @@ class ParametersServiceTest {
 
         when(companyRepository.findById(any()))
                 .thenReturn(Optional.of(company));
+
         when(customizationParametersRepository.findById(any(BigInteger.class)))
                 .thenReturn(Optional.of(param));
+
         when(companyParametersRepository.findByCompanyAndCustomizationParameters(any(), any()))
                 .thenReturn(Optional.of(cp));
+
         when(companyParametersPreviewRepository.findByCompanyAndCustomizationParameters(any(), any()))
-                .thenReturn(List.of(preview));
+                .thenReturn(Optional.of(preview));
 
         service.putCustomParametersValue(BigInteger.ONE, BigInteger.ONE, "C");
 
+        assertEquals("C", preview.getParameterValue());
+
         verify(companyParametersPreviewRepository).save(preview);
+        verify(companyParametersPreviewRepository, never()).delete(any());
     }
 
     @Test
     void shouldCreateNewDraft() {
-        Company company = new Company();
+    	Company company = new Company();
         CustomizationParameters param = new CustomizationParameters();
 
         CompanyParameters cp = new CompanyParameters();
@@ -367,15 +377,29 @@ class ParametersServiceTest {
 
         when(companyRepository.findById(any()))
                 .thenReturn(Optional.of(company));
+
         when(customizationParametersRepository.findById(any(BigInteger.class)))
                 .thenReturn(Optional.of(param));
+
         when(companyParametersRepository.findByCompanyAndCustomizationParameters(any(), any()))
                 .thenReturn(Optional.of(cp));
+
         when(companyParametersPreviewRepository.findByCompanyAndCustomizationParameters(any(), any()))
-                .thenReturn(List.of());
+                .thenReturn(Optional.empty());
 
         service.putCustomParametersValue(BigInteger.ONE, BigInteger.ONE, "C");
 
-        verify(companyParametersPreviewRepository).save(any());
+        ArgumentCaptor<CompanyParametersPreview> captor =
+                ArgumentCaptor.forClass(CompanyParametersPreview.class);
+
+        verify(companyParametersPreviewRepository).save(captor.capture());
+
+        CompanyParametersPreview saved = captor.getValue();
+
+        assertEquals(company, saved.getCompany());
+        assertEquals(param, saved.getCustomizationParameters());
+        assertEquals("C", saved.getParameterValue());
+
+        verify(companyParametersPreviewRepository, never()).delete(any());
     }
 }

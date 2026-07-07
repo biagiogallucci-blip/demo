@@ -1,7 +1,6 @@
 package com.example.demo.repository;
 
 import java.math.BigInteger;
-import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,7 +8,6 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.entity.Company;
 import com.example.demo.entity.CompanyParametersPreview;
@@ -19,7 +17,6 @@ import com.example.demo.entity.CustomizationParameters;
 public interface CompanyParametersPreviewRepository extends JpaRepository<CompanyParametersPreview, BigInteger>{
 	
 	@Modifying
-    @Transactional
     @Query("DELETE FROM CompanyParametersPreview cp WHERE cp.company.idCompany = :companyId")
 	void deleteByCompanyId(@Param("companyId") BigInteger companyId);
 	
@@ -54,5 +51,12 @@ public interface CompanyParametersPreviewRepository extends JpaRepository<Compan
 	boolean existsByCompanyAndCustomizationParameters(Company company,
             CustomizationParameters param);
 	
-	List<CompanyParametersPreview> findByCompanyAndCustomizationParameters(Company company, CustomizationParameters param);
+	Optional<CompanyParametersPreview> findByCompanyAndCustomizationParameters(Company company, CustomizationParameters param);
+	
+	@Modifying
+	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_PARAMETERS_PREVIEW (ID, COMPANY_ID, PARAMETER_CODE, PARAMETER_VALUE) " +
+	               "SELECT XRBNPPUSR.COMPANY_PARAMETERS_PREVIEW_SEQ.NEXTVAL, c.ID_COMPANY, :parameterCode, :parameterValue " +
+	               "FROM XRBNPPUSR.COMPANY c", nativeQuery = true)
+	void insertParametersPreviewForAllCompanies(@Param("parameterCode") String parameterCode,
+	                                            @Param("parameterValue") String parameterValue);
 }

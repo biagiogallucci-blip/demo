@@ -32,7 +32,6 @@ public interface CompanyParametersRepository extends JpaRepository<CompanyParame
 	List<CompanyParameterProjection> getCompanyCustomParameters(@Param("companyId") BigInteger companyId, @Param("search") String search);
 
 	@Modifying
-    @Transactional
     @Query("DELETE FROM CompanyParameters cp WHERE cp.company.idCompany = :companyId")
 	void deleteByCompanyId(@Param("companyId") BigInteger companyId);
 
@@ -49,11 +48,17 @@ public interface CompanyParametersRepository extends JpaRepository<CompanyParame
 	
 	@Modifying
 	@Query("UPDATE CompanyParameters cp SET cp.parameterValue = (SELECT cpp.parameterValue FROM CompanyParametersPreview cpp WHERE cpp.company = cp.company "
-			+ "AND cpp.customizationParameters.id = :paramId AND cpp.parameterValue <> cp.parameterValue) WHERE cp.customizationParameters.id = :paramId "
-			+ "AND EXISTS (SELECT 1 FROM CompanyParametersPreview cpp WHERE cpp.company = cp.company AND cpp.customizationParameters.id = :paramId AND "
-			+ "cpp.parameterValue <> cp.parameterValue)")
-	void updatePublishedFromDraft(@Param("paramId") BigInteger paramId);
+	     + "AND cpp.customizationParameters.id = :paramId) WHERE cp.customizationParameters.id = :paramId AND EXISTS (SELECT 1 FROM CompanyParametersPreview cpp "
+	     + "WHERE cpp.company = cp.company AND cpp.customizationParameters.id = :paramId)")
+	int updatePublishedFromDraft(@Param("paramId") BigInteger paramId);
 	
 	boolean existsByCompanyAndCustomizationParameters(Company company,
             CustomizationParameters param);
+	
+	@Modifying
+	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_PARAMETERS (ID, COMPANY_ID, PARAMETER_CODE, PARAMETER_VALUE) " +
+	               "SELECT XRBNPPUSR.COMPANY_PARAMETERS_SEQ.NEXTVAL, c.ID_COMPANY, :parameterCode, :parameterValue " +
+	               "FROM XRBNPPUSR.COMPANY c", nativeQuery = true)
+	int insertParametersForAllCompanies(@Param("parameterCode") String parameterCode,
+	                                    @Param("parameterValue") String parameterValue);
 }

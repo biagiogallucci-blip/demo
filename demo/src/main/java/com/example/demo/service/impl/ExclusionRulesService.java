@@ -264,6 +264,7 @@ public class ExclusionRulesService implements IExclusionRulesService {
 	}
 
 	@Override
+	@Transactional
 	public void publishExclusionRule(BigInteger ruleId) {
 		List<BigInteger> ids = companyCategoriesPreviewRepository.findExclusionRuleToPublish(ruleId);
 		companyCategoriesRepository.deleteAllById(ids);
