@@ -1,9 +1,14 @@
 package com.example.demo.controller;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,11 +40,10 @@ public class ExclusionRulesController {
 	@Autowired
 	private ICompaniesService companiesService;
 
-
 	@GetMapping
 	public ExclusionRulesResponse getExclusionRules(@RequestParam(defaultValue = "1") Integer page,
 			@RequestParam(defaultValue = "10") Integer limit, @RequestParam(required = false) String search,
-			@RequestParam(required = false) String status) {
+			@RequestParam(defaultValue = "ALL", required = false) String status) {
 		return exclusionRulesService.getExclusionRules(page, limit, search, status);
 	}
 
@@ -88,4 +92,29 @@ public class ExclusionRulesController {
 	public void publishExclusionRule (@PathVariable("ruleId") BigInteger ruleId) {
 		exclusionRulesService.publishExclusionRule(ruleId);
 	}
+	
+	@GetMapping("/export")
+    public ResponseEntity<byte[]> exportAziende(@RequestParam(defaultValue = "1") Integer page,
+			@RequestParam(defaultValue = "10") Integer limit, @RequestParam(required = false) String search,
+			@RequestParam(required = false) String status) {
+        
+    	ExclusionRulesResponse response = exclusionRulesService.getExclusionRules(page, limit, search, status);
+
+        if (response == null || response.getData() == null || response.getData().isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+
+        try {
+            byte[] excelBytes = exclusionRulesService.generaExcelExclusionRules(response.getData());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentDispositionFormData("attachment", "esportazione_regole_esclusione.xlsx");
+            headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            headers.setContentLength(excelBytes.length);
+
+            return new ResponseEntity<>(excelBytes, headers, HttpStatus.OK);
+
+        } catch (IOException e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

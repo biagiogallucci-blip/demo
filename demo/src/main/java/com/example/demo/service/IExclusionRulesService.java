@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
 
@@ -30,4 +31,6 @@ public interface IExclusionRulesService {
 	CloneExclusionRuleResponse cloneExclusionRule(BigInteger ruleId, CloneExclusionRuleRequest cloneExclusionRuleRequest);
 
 	void publishExclusionRule(BigInteger ruleId);
+
+	byte[] generaExcelExclusionRules(List<ExclusionRulesDto> data) throws IOException;
 }

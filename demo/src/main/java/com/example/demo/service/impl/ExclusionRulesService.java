@@ -1,5 +1,7 @@
 package com.example.demo.service.impl;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -43,6 +45,9 @@ import com.example.demo.response.Stats;
 import com.example.demo.service.IExclusionRulesService;
 import com.example.demo.utils.ActiveFlag;
 import com.example.demo.utils.Constants;
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 @Service
 public class ExclusionRulesService implements IExclusionRulesService {
@@ -269,4 +274,142 @@ public class ExclusionRulesService implements IExclusionRulesService {
 		List<BigInteger> ids = companyCategoriesPreviewRepository.findExclusionRuleToPublish(ruleId);
 		companyCategoriesRepository.deleteAllById(ids);
 	}
+
+	@Override
+	public byte[] generaExcelExclusionRules(List<ExclusionRulesDto> data) throws IOException {
+		try (Workbook workbook = new XSSFWorkbook(); 
+	             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+	            
+	            Sheet sheet = workbook.createSheet("Regole Esclusione");
+	            sheet.setDisplayGridlines(true); 
+
+	            Font fontTitle = workbook.createFont();
+	            fontTitle.setFontName("Segoe UI");
+	            fontTitle.setFontHeightInPoints((short) 16);
+	            fontTitle.setBold(true);
+
+	            Font fontHeader = workbook.createFont();
+	            fontHeader.setFontName("Segoe UI");
+	            fontHeader.setFontHeightInPoints((short) 11);
+	            fontHeader.setBold(true);
+	            fontHeader.setColor(IndexedColors.WHITE.getIndex());
+
+	            Font fontBody = workbook.createFont();
+	            fontBody.setFontName("Segoe UI");
+	            fontBody.setFontHeightInPoints((short) 11);
+
+	            Font fontPublished = workbook.createFont();
+	            fontPublished.setFontName("Segoe UI");
+	            fontPublished.setFontHeightInPoints((short) 11);
+	            fontPublished.setBold(true);
+	            fontPublished.setColor(IndexedColors.GREEN.getIndex());
+
+	            Font fontDraft = workbook.createFont();
+	            fontDraft.setFontName("Segoe UI");
+	            fontDraft.setFontHeightInPoints((short) 11);
+	            fontDraft.setBold(true);
+	            fontDraft.setColor(IndexedColors.ORANGE.getIndex());
+
+	            CellStyle styleHeader = workbook.createCellStyle();
+	            styleHeader.setFont(fontHeader);
+	            styleHeader.setFillForegroundColor(IndexedColors.BLUE_GREY.getIndex());
+	            styleHeader.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+	            styleHeader.setVerticalAlignment(VerticalAlignment.CENTER);
+	            applyBorders(styleHeader);
+
+	            CellStyle styleBodyLeft = workbook.createCellStyle();
+	            styleBodyLeft.setFont(fontBody);
+	            styleBodyLeft.setAlignment(HorizontalAlignment.LEFT);
+	            styleBodyLeft.setVerticalAlignment(VerticalAlignment.CENTER);
+	            applyBorders(styleBodyLeft);
+
+	            CellStyle styleBodyCenter = workbook.createCellStyle();
+	            styleBodyCenter.setFont(fontBody);
+	            styleBodyCenter.setAlignment(HorizontalAlignment.CENTER);
+	            styleBodyCenter.setVerticalAlignment(VerticalAlignment.CENTER);
+	            applyBorders(styleBodyCenter);
+
+	            Row titleRow = sheet.createRow(0);
+	            titleRow.setHeightInPoints(35);
+	            Cell titleCell = titleRow.createCell(0);
+	            titleCell.setCellValue("Report Regole di Esclusione");
+	            titleCell.setCellStyle(workbook.createCellStyle());
+	            titleCell.getCellStyle().setFont(fontTitle);
+
+	            String[] headers = {
+	                "ID Regola", 
+	                "Nome Regola", 
+	                "Tag Regola", 
+	                "Aziende Associate", 
+	                "Bozza Pendente", 
+	                "Stato"
+	            };
+	            
+	            Row headerRow = sheet.createRow(2);
+	            headerRow.setHeightInPoints(26);
+	            
+	            for (int i = 0; i < headers.length; i++) {
+	                Cell cell = headerRow.createCell(i);
+	                cell.setCellValue(headers[i]);
+	                
+	                CellStyle currentHeaderStyle = workbook.createCellStyle();
+	                currentHeaderStyle.cloneStyleFrom(styleHeader);
+	                currentHeaderStyle.setAlignment((i == 0 || i >= 3) ? HorizontalAlignment.CENTER : HorizontalAlignment.LEFT);
+	                cell.setCellStyle(currentHeaderStyle);
+	            }
+
+	            int rowIdx = 3;
+	            for (ExclusionRulesDto regola : data) {
+	                Row row = sheet.createRow(rowIdx++);
+	                row.setHeightInPoints(22);
+
+	                String id = regola.getId() != null ? regola.getId().toString() : "";
+	                String name = regola.getName() != null ? regola.getName() : "";
+	                String tag = regola.getTag() != null ? regola.getTag() : "";
+	                int companiesCount = regola.getCompaniesCount() != null ? regola.getCompaniesCount() : 0;
+	                String bozzaPendente = Boolean.TRUE.equals(regola.getHasDraft()) ? "Sì" : "No";
+	                String statusVal = regola.getStatus() != null ? regola.getStatus() : "";
+
+	                Cell c0 = row.createCell(0); c0.setCellValue(id); c0.setCellStyle(styleBodyCenter);
+	                Cell c1 = row.createCell(1); c1.setCellValue(name); c1.setCellStyle(styleBodyLeft);
+	                Cell c2 = row.createCell(2); c2.setCellValue(tag); c2.setCellStyle(styleBodyLeft);
+	                
+	                Cell c3 = row.createCell(3); 
+	                c3.setCellValue(companiesCount); 
+	                c3.setCellStyle(styleBodyCenter);
+	                c3.getCellStyle().setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
+	                
+	                Cell c4 = row.createCell(4); c4.setCellValue(bozzaPendente); c4.setCellStyle(styleBodyCenter);
+	                
+	                Cell c5 = row.createCell(5);
+	                c5.setCellValue(statusVal);
+	                CellStyle statusStyle = workbook.createCellStyle();
+	                statusStyle.cloneStyleFrom(styleBodyCenter);
+	                if ("PUBLISHED".equalsIgnoreCase(statusVal)) {
+	                    statusStyle.setFont(fontPublished);
+	                } else if ("DRAFT".equalsIgnoreCase(statusVal)) {
+	                    statusStyle.setFont(fontDraft);
+	                }
+	                c5.setCellStyle(statusStyle);
+	            }
+	            for (int i = 0; i < headers.length; i++) {
+	                sheet.autoSizeColumn(i);
+	                sheet.setColumnWidth(i, sheet.getColumnWidth(i) + 1200); 
+	            }
+
+	            workbook.write(out);
+	            return out.toByteArray();
+	        }
+	}
+	
+	private static void applyBorders(CellStyle style) {
+        style.setBorderTop(BorderStyle.THIN);
+        style.setBorderBottom(BorderStyle.THIN);
+        style.setBorderLeft(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        style.setTopBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setBottomBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setLeftBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setRightBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+    }
 }

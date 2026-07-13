@@ -163,44 +163,37 @@ class CompaniesServiceTest {
 	@Test
 	void shouldCopyCustomParameters() {
 		BigInteger companyId = BigInteger.ONE;
-		BigInteger sourceCompanyId = BigInteger.TWO;
+	    BigInteger sourceCompanyId = BigInteger.TWO;
 
-		Company company = new Company();
-		when(companyRepository.findById(companyId)).thenReturn(Optional.of(company));
+	    CompanyCreateRequest request = new CompanyCreateRequest();
+	    request.setSourceCompanyId(sourceCompanyId);
 
-		CustomizationParameters customizationParameters = new CustomizationParameters();
-		customizationParameters.setCode("CODE");
-		customizationParameters.setDescription("DESC");
+	    Company targetCompany = new Company();
+	    when(companyRepository.findById(companyId)).thenReturn(Optional.of(targetCompany));
 
-		CompanyParameters parameter = new CompanyParameters();
-		parameter.setCustomizationParameters(customizationParameters);
-		parameter.setParameterValue("VAL");
+	    when(companyParametersRepository.copyCompanyParameters(sourceCompanyId, companyId)).thenReturn(1);
 
-		when(companyParametersRepository.findParametersByCompanyId(sourceCompanyId)).thenReturn(List.of(parameter));
+	    CompanyParameterProjection projection = mock(CompanyParameterProjection.class);
+	    when(projection.getId()).thenReturn(BigInteger.ONE);
+	    when(projection.getDescription()).thenReturn("DESC");
+	    when(projection.getParameterCode()).thenReturn("CODE");
+	    when(projection.getParameterValue()).thenReturn("VAL");
+	    when(projection.getParameterValuePreview()).thenReturn("VAL");
 
-		CompanyParameterProjection projection = mock(CompanyParameterProjection.class);
-		when(projection.getId()).thenReturn(BigInteger.ONE);
-		when(projection.getDescription()).thenReturn("DESC");
-		when(projection.getParameterCode()).thenReturn("CODE");
-		when(projection.getParameterValue()).thenReturn("VAL");
-		when(projection.getParameterValuePreview()).thenReturn("VAL");
+	    when(companyParametersRepository.getCompanyCustomParameters(companyId, null)).thenReturn(List.of(projection));
 
-		when(companyParametersRepository.getCompanyCustomParameters(companyId, null)).thenReturn(List.of(projection));
+	    CopyCustomParametersResponse response = service.copyCustomParameters(companyId, request);
 
-		CompanyCreateRequest request = new CompanyCreateRequest();
-		request.setSourceCompanyId(sourceCompanyId);
+	    verify(companyParametersRepository).deleteByCompanyId(companyId);
+	    verify(companyParametersPreviewRepository).deleteByCompanyId(companyId);
+	    
+	    verify(companyParametersRepository).copyCompanyParameters(sourceCompanyId, companyId);
 
-		CopyCustomParametersResponse response = service.copyCustomParameters(companyId, request);
-
-		verify(companyParametersRepository).deleteByCompanyId(companyId);
-		verify(companyParametersPreviewRepository).deleteByCompanyId(companyId);
-		verify(companyParametersRepository).save(any());
-		verify(companyParametersPreviewRepository).save(any());
-
-		assertNotNull(response);
-		assertEquals(1, response.getCopiedCount());
-		assertEquals(Constants.COPY_SUCCESS, response.getMessage());
-		assertEquals(1, response.getData().size());
+	    assertNotNull(response);
+	    assertEquals(1, response.getCopiedCount());
+	    assertEquals(Constants.COPY_SUCCESS, response.getMessage());
+	    assertNotNull(response.getData());
+	    assertEquals(1, response.getData().size());
 	}
 
 	@Test

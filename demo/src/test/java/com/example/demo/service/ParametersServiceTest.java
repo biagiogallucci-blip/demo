@@ -147,9 +147,6 @@ class ParametersServiceTest {
         verify(companyParametersRepository)
                 .insertParametersForAllCompanies("CODE", "VAL");
 
-        verify(companyParametersPreviewRepository)
-                .insertParametersPreviewForAllCompanies("CODE", "VAL");
-
         assertEquals(1, response.getCompaniesCount());
     }
 

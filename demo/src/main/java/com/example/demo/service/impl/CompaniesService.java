@@ -322,31 +322,22 @@ public class CompaniesService implements ICompaniesService {
 	@Transactional
 	public CopyCustomParametersResponse copyCustomParameters(BigInteger companyId,
 			CompanyCreateRequest copyExclusionRulesRequest) {
-		Company company = companyRepository.findById(companyId)
+		companyRepository.findById(companyId)
 				.orElseThrow(() -> new CompanyNotFoundException(companyId));
+		
+		companyRepository.findById(companyId)
+		.orElseThrow(() -> new CompanyNotFoundException(copyExclusionRulesRequest.getSourceCompanyId()));
+		
 		companyParametersRepository.deleteByCompanyId(companyId);
 		companyParametersPreviewRepository.deleteByCompanyId(companyId);
 
-		List<CompanyParameters> parametersToCopy = companyParametersRepository
-				.findParametersByCompanyId(copyExclusionRulesRequest.getSourceCompanyId());
-
-		for (CompanyParameters parameterToCopy : parametersToCopy) {
-			CompanyParameters companyParameter = new CompanyParameters();
-			companyParameter.setCompany(company);
-			companyParameter.setCustomizationParameters(parameterToCopy.getCustomizationParameters());
-			companyParameter.setParameterValue(parameterToCopy.getParameterValue());
-			companyParametersRepository.save(companyParameter);
-
-			CompanyParametersPreview companyParameterPreview = new CompanyParametersPreview();
-			companyParameterPreview.setCompany(company);
-			companyParameterPreview.setCustomizationParameters(parameterToCopy.getCustomizationParameters());
-			companyParameterPreview.setParameterValue(parameterToCopy.getParameterValue());
-			companyParametersPreviewRepository.save(companyParameterPreview);
-		}
+		int copiedCount = companyParametersRepository.copyCompanyParameters(
+				copyExclusionRulesRequest.getSourceCompanyId(),
+	            companyId);
 
 		CopyCustomParametersResponse response = new CopyCustomParametersResponse();
 		response.setData(getCompanyCustomParameters(companyId, null).getData());
-		response.setCopiedCount(response.getData().size());
+		response.setCopiedCount(copiedCount);
 		response.setMessage(Constants.COPY_SUCCESS);
 
 		return response;

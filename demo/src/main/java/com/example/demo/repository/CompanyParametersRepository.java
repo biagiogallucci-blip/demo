@@ -47,9 +47,10 @@ public interface CompanyParametersRepository extends JpaRepository<CompanyParame
 	                              @Param("paramId") BigInteger paramId);
 	
 	@Modifying
-	@Query("UPDATE CompanyParameters cp SET cp.parameterValue = (SELECT cpp.parameterValue FROM CompanyParametersPreview cpp WHERE cpp.company = cp.company "
-	     + "AND cpp.customizationParameters.id = :paramId) WHERE cp.customizationParameters.id = :paramId AND EXISTS (SELECT 1 FROM CompanyParametersPreview cpp "
-	     + "WHERE cpp.company = cp.company AND cpp.customizationParameters.id = :paramId)")
+	@Query(value = "UPDATE XRBNPPUSR.COMPANY_PARAMETERS cp SET cp.PARAMETER_VALUE = (SELECT cpp.PARAMETER_VALUE FROM XRBNPPUSR.COMPANY_PARAMETERS_PREVIEW cpp "
+			+ "WHERE cpp.COMPANY_ID = cp.COMPANY_ID AND cpp.PARAMETER_CODE = cp.PARAMETER_CODE) WHERE cp.PARAMETER_CODE = (SELECT CODE FROM XRBNPPUSR.CUSTOMIZATION_PARAMETERS "
+			+ "WHERE ID = :paramId) AND EXISTS (SELECT 1 FROM XRBNPPUSR.COMPANY_PARAMETERS_PREVIEW cpp WHERE cpp.COMPANY_ID = cp.COMPANY_ID AND cpp.PARAMETER_CODE = "
+			+ "cp.PARAMETER_CODE)", nativeQuery = true)
 	int updatePublishedFromDraft(@Param("paramId") BigInteger paramId);
 	
 	boolean existsByCompanyAndCustomizationParameters(Company company,
@@ -61,4 +62,13 @@ public interface CompanyParametersRepository extends JpaRepository<CompanyParame
 	               "FROM XRBNPPUSR.COMPANY c", nativeQuery = true)
 	int insertParametersForAllCompanies(@Param("parameterCode") String parameterCode,
 	                                    @Param("parameterValue") String parameterValue);
+	
+	@Modifying
+	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_PARAMETERS (ID, COMPANY_ID, PARAMETER_ID, PARAMETER_VALUE) "
+	        + "SELECT XRBNPPUSR.COMPANY_PARAMETERS_SEQ.NEXTVAL, :targetCompanyId, PARAMETER_ID, PARAMETER_VALUE "
+	        + "FROM XRBNPPUSR.COMPANY_PARAMETERS "
+	        + "WHERE COMPANY_ID = :sourceCompanyId",
+	        nativeQuery = true)
+	int copyCompanyParameters(@Param("sourceCompanyId") BigInteger sourceCompanyId,
+	                          @Param("targetCompanyId") BigInteger targetCompanyId);
 }

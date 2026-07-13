@@ -43,6 +43,12 @@ import com.example.demo.response.Stats;
 import com.example.demo.service.IParametersService;
 import com.example.demo.utils.Constants;
 
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
 @Service
 public class ParametersService implements IParametersService {
 
@@ -140,10 +146,6 @@ public class ParametersService implements IParametersService {
 
 	    if (Boolean.TRUE.equals(createCustomParametersRequest.getApplyToAllCompanies())) {
 	        companiesCount = companyParametersRepository.insertParametersForAllCompanies(
-	                customParameter.getCode(),
-	                createCustomParametersRequest.getValue());
-
-	        companyParametersPreviewRepository.insertParametersPreviewForAllCompanies(
 	                customParameter.getCode(),
 	                createCustomParametersRequest.getValue());
 	    }
@@ -311,4 +313,148 @@ public class ParametersService implements IParametersService {
 	        companyParametersPreviewRepository.save(preview);
 	    }
 	}
+
+	@Override
+	public byte[] generaExcelCustomParameters(List<CustomParametersDto> data) throws IOException {
+		try (Workbook workbook = new XSSFWorkbook(); 
+	             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+	            
+	            Sheet sheet = workbook.createSheet("Parametri Custom");
+	            sheet.setDisplayGridlines(true);
+
+	            Font fontTitle = workbook.createFont();
+	            fontTitle.setFontName("Segoe UI");
+	            fontTitle.setFontHeightInPoints((short) 16);
+	            fontTitle.setBold(true);
+
+	            Font fontHeader = workbook.createFont();
+	            fontHeader.setFontName("Segoe UI");
+	            fontHeader.setFontHeightInPoints((short) 11);
+	            fontHeader.setBold(true);
+	            fontHeader.setColor(IndexedColors.WHITE.getIndex());
+
+	            Font fontBody = workbook.createFont();
+	            fontBody.setFontName("Segoe UI");
+	            fontBody.setFontHeightInPoints((short) 11);
+
+	            Font fontPublished = workbook.createFont();
+	            fontPublished.setFontName("Segoe UI");
+	            fontPublished.setFontHeightInPoints((short) 11);
+	            fontPublished.setBold(true);
+	            fontPublished.setColor(IndexedColors.GREEN.getIndex());
+
+	            Font fontDraft = workbook.createFont();
+	            fontDraft.setFontName("Segoe UI");
+	            fontDraft.setFontHeightInPoints((short) 11);
+	            fontDraft.setBold(true);
+	            fontDraft.setColor(IndexedColors.ORANGE.getIndex());
+
+	            CellStyle styleHeader = workbook.createCellStyle();
+	            styleHeader.setFont(fontHeader);
+	            styleHeader.setFillForegroundColor(IndexedColors.BLUE_GREY.getIndex());
+	            styleHeader.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+	            styleHeader.setVerticalAlignment(VerticalAlignment.CENTER);
+	            applyBorders(styleHeader);
+
+	            CellStyle styleBodyLeft = workbook.createCellStyle();
+	            styleBodyLeft.setFont(fontBody);
+	            styleBodyLeft.setAlignment(HorizontalAlignment.LEFT);
+	            styleBodyLeft.setVerticalAlignment(VerticalAlignment.CENTER);
+	            applyBorders(styleBodyLeft);
+
+	            CellStyle styleBodyCenter = workbook.createCellStyle();
+	            styleBodyCenter.setFont(fontBody);
+	            styleBodyCenter.setAlignment(HorizontalAlignment.CENTER);
+	            styleBodyCenter.setVerticalAlignment(VerticalAlignment.CENTER);
+	            applyBorders(styleBodyCenter);
+
+	            Row titleRow = sheet.createRow(0);
+	            titleRow.setHeightInPoints(35);
+	            Cell titleCell = titleRow.createCell(0);
+	            titleCell.setCellValue("Report Parametri Custom");
+	            titleCell.setCellStyle(workbook.createCellStyle());
+	            titleCell.getCellStyle().setFont(fontTitle);
+
+	            String[] headers = {
+	                "ID Parametro", 
+	                "Titolo", 
+	                "Codice", 
+	                "Placeholder (Tag)",
+	                "Aziende Associate", 
+	                "Bozza Pendente", 
+	                "Stato"
+	            };
+	            
+	            Row headerRow = sheet.createRow(2);
+	            headerRow.setHeightInPoints(26);
+	            
+	            for (int i = 0; i < headers.length; i++) {
+	                Cell cell = headerRow.createCell(i);
+	                cell.setCellValue(headers[i]);
+	                
+	                CellStyle currentHeaderStyle = workbook.createCellStyle();
+	                currentHeaderStyle.cloneStyleFrom(styleHeader);
+	                currentHeaderStyle.setAlignment((i == 0 || i >= 4) ? HorizontalAlignment.CENTER : HorizontalAlignment.LEFT);
+	                cell.setCellStyle(currentHeaderStyle);
+	            }
+
+	            int rowIdx = 3;
+	            if (data != null) {
+	                for (CustomParametersDto param : data) {
+	                    Row row = sheet.createRow(rowIdx++);
+	                    row.setHeightInPoints(22);
+
+	                    String id = param.getId() != null ? param.getId() : "";
+	                    String title = param.getTitle() != null ? param.getTitle() : "";
+	                    String code = param.getCode() != null ? param.getCode() : "";
+	                    String placeholder = param.getPlaceholder() != null ? param.getPlaceholder() : "";
+	                    int companiesCount = param.getCompaniesCount() != null ? param.getCompaniesCount() : 0;
+	                    String bozzaPendente = Boolean.TRUE.equals(param.getHasDraft()) ? "Sì" : "No";
+	                    String statusVal = param.getStatus() != null ? param.getStatus() : "";
+
+	                    Cell c0 = row.createCell(0); c0.setCellValue(id); c0.setCellStyle(styleBodyCenter);
+	                    Cell c1 = row.createCell(1); c1.setCellValue(title); c1.setCellStyle(styleBodyLeft);
+	                    Cell c2 = row.createCell(2); c2.setCellValue(code); c2.setCellStyle(styleBodyLeft);
+	                    Cell c3 = row.createCell(3); c3.setCellValue(placeholder); c3.setCellStyle(styleBodyLeft);
+	                    
+	                    Cell c4 = row.createCell(4); 
+	                    c4.setCellValue(companiesCount); 
+	                    c4.setCellStyle(styleBodyCenter);
+	                    c4.getCellStyle().setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
+	                    
+	                    Cell c5 = row.createCell(5); c5.setCellValue(bozzaPendente); c5.setCellStyle(styleBodyCenter);
+	                    
+	                    Cell c6 = row.createCell(6);
+	                    c6.setCellValue(statusVal);
+	                    CellStyle statusStyle = workbook.createCellStyle();
+	                    statusStyle.cloneStyleFrom(styleBodyCenter);
+	                    if ("PUBLISHED".equalsIgnoreCase(statusVal)) {
+	                        statusStyle.setFont(fontPublished);
+	                    } else if ("DRAFT".equalsIgnoreCase(statusVal)) {
+	                        statusStyle.setFont(fontDraft);
+	                    }
+	                    c6.setCellStyle(statusStyle);
+	                }
+	            }
+
+	            for (int i = 0; i < headers.length; i++) {
+	                sheet.autoSizeColumn(i);
+	                sheet.setColumnWidth(i, sheet.getColumnWidth(i) + 1200);
+	            }
+
+	            workbook.write(out);
+	            return out.toByteArray();
+	        }
+	}
+	
+	private static void applyBorders(CellStyle style) {
+        style.setBorderTop(BorderStyle.THIN);
+        style.setBorderBottom(BorderStyle.THIN);
+        style.setBorderLeft(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        style.setTopBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setBottomBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setLeftBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setRightBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+    }
 }

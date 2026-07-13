@@ -1,8 +1,10 @@
 package com.example.demo.service;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
 
+import com.example.demo.model.CustomParametersDto;
 import com.example.demo.model.ParametersDefinitionDto;
 import com.example.demo.projection.CompanyLookupProjection;
 import com.example.demo.request.CreateCustomParametersRequest;
@@ -33,4 +35,6 @@ public interface IParametersService {
 	void saveCustomParametersForCompany(BigInteger paramId, SaveCustomParametersForCompanyRequest saveCustomParametersForCompanyRequest);
 
 	void putCustomParametersValue(BigInteger paramId, BigInteger companyId, String value);
+
+	byte[] generaExcelCustomParameters(List<CustomParametersDto> data) throws IOException;
 }
