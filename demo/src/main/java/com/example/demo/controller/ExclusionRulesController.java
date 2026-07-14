@@ -96,7 +96,7 @@ public class ExclusionRulesController {
 	@GetMapping("/export")
     public ResponseEntity<byte[]> exportAziende(@RequestParam(defaultValue = "1") Integer page,
 			@RequestParam(defaultValue = "10") Integer limit, @RequestParam(required = false) String search,
-			@RequestParam(required = false) String status) {
+			@RequestParam(defaultValue = "ALL", required = false) String status) {
         
     	ExclusionRulesResponse response = exclusionRulesService.getExclusionRules(page, limit, search, status);
 

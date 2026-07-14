@@ -20,33 +20,12 @@ public interface CompanyParametersPreviewRepository extends JpaRepository<Compan
     @Query("DELETE FROM CompanyParametersPreview cp WHERE cp.company.idCompany = :companyId")
 	void deleteByCompanyId(@Param("companyId") BigInteger companyId);
 	
-	@Query("SELECT COUNT(cp) FROM CompanyParametersPreview cp " +
-	           "WHERE cp.company = :company AND cp.customizationParameters = :customizationParameters")
-	Integer countByCompanyAndCustomizationParameters(@Param("company") Company company, @Param("customizationParameters") CustomizationParameters customizationParameters);
-	
 	@Query("SELECT COUNT(cp) FROM CompanyParametersPreview cp WHERE cp.customizationParameters.code = :parameterCode")
 	Integer countByParameterCode(@Param("parameterCode") String parameterCode);
 	
-	Boolean existsByCompanyAndCustomizationParametersAndParameterValue(Company company, CustomizationParameters customizationParameters, String parameterValue);
-
-	Optional<CompanyParametersPreview> findByCompanyAndCustomizationParametersAndIdNot(Company company,
-			CustomizationParameters customizationParameters, BigInteger paramId);
-	
 	@Modifying
-	@Query("DELETE FROM CompanyParametersPreview cpp WHERE cpp.company.idCompany = :companyId AND cpp.customizationParameters = (SELECT "
-			+ "p FROM CustomizationParameters p WHERE p.id = :paramId)")
-	void deleteByCompanyAndParamId(@Param("companyId") BigInteger companyId,
-	                              @Param("paramId") BigInteger paramId);
-	
-	@Modifying
-	@Query("DELETE FROM CompanyParametersPreview cpp WHERE cpp.customizationParameters.id = :paramId")
+	@Query(value = "DELETE FROM XRBNPPUSR.COMPANY_PARAMETERS_PREVIEW WHERE PARAMETER_CODE = (SELECT CODE FROM XRBNPPUSR.CUSTOMIZATION_PARAMETERS WHERE ID = :paramId)", nativeQuery = true)
 	void deletePreview(@Param("paramId") BigInteger paramId);
-	
-	@Modifying
-	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_PARAMETERS_PREVIEW (ID, COMPANY_ID, PARAMETER_CODE, PARAMETER_VALUE) SELECT XRBNPPUSR.COMPANY_PARAMETERS_PREVIEW_SEQ.NEXTVAL, "
-			+ "cp.COMPANY_ID, cp.PARAMETER_CODE,cp.PARAMETER_VALUE FROM XRBNPPUSR.COMPANY_PARAMETERS cp JOIN XRBNPPUSR.CUSTOMIZATION_PARAMETERS p "
-			+ "ON p.CODE = cp.PARAMETER_CODE WHERE p.ID = :paramId", nativeQuery = true)
-	void insertPreview(@Param("paramId") BigInteger paramId);
 	
 	boolean existsByCompanyAndCustomizationParameters(Company company,
             CustomizationParameters param);
@@ -54,9 +33,11 @@ public interface CompanyParametersPreviewRepository extends JpaRepository<Compan
 	Optional<CompanyParametersPreview> findByCompanyAndCustomizationParameters(Company company, CustomizationParameters param);
 	
 	@Modifying
-	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_PARAMETERS_PREVIEW (ID, COMPANY_ID, PARAMETER_CODE, PARAMETER_VALUE) " +
-	               "SELECT XRBNPPUSR.COMPANY_PARAMETERS_PREVIEW_SEQ.NEXTVAL, c.ID_COMPANY, :parameterCode, :parameterValue " +
-	               "FROM XRBNPPUSR.COMPANY c", nativeQuery = true)
-	void insertParametersPreviewForAllCompanies(@Param("parameterCode") String parameterCode,
-	                                            @Param("parameterValue") String parameterValue);
+	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_PARAMETERS_PREVIEW (ID, COMPANY_ID, PARAMETER_ID, PARAMETER_VALUE) "
+	        + "SELECT XRBNPPUSR.COMPANY_PARAMETERS_PREVIEW_SEQ.NEXTVAL, :targetCompanyId, PARAMETER_ID, PARAMETER_VALUE "
+	        + "FROM XRBNPPUSR.COMPANY_PARAMETERS_PREVIEW "
+	        + "WHERE COMPANY_ID = :sourceCompanyId",
+	        nativeQuery = true)
+	void copyCompanyParametersPreview(@Param("sourceCompanyId") BigInteger sourceCompanyId,
+	                                  @Param("targetCompanyId") BigInteger targetCompanyId);
 }

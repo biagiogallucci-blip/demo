@@ -90,9 +90,9 @@ public class CustomParametersController {
 	}
 	
 	@GetMapping("/export")
-    public ResponseEntity<byte[]> exportAziende(@RequestParam(defaultValue = "1") Integer page,
+    public ResponseEntity<byte[]> exportCustomParameters(@RequestParam(defaultValue = "1") Integer page,
 			@RequestParam(defaultValue = "10") Integer limit, @RequestParam(required = false) String search,
-			@RequestParam(required = false) String status) {
+			@RequestParam(defaultValue = "ALL", required = false) String status) {
         
     	CustomParametersResponse response = parametersService.getCustomParameters(page, limit, search, status);
 

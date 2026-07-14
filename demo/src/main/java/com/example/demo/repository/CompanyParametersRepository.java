@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.entity.Company;
 import com.example.demo.entity.CompanyParameters;
@@ -35,9 +34,6 @@ public interface CompanyParametersRepository extends JpaRepository<CompanyParame
     @Query("DELETE FROM CompanyParameters cp WHERE cp.company.idCompany = :companyId")
 	void deleteByCompanyId(@Param("companyId") BigInteger companyId);
 
-	@Query("SELECT cp FROM CompanyParameters cp WHERE cp.company.idCompany = :companyId")
-	List<CompanyParameters> findParametersByCompanyId(@Param("companyId") BigInteger companyId);
-
 	Optional<CompanyParameters> findByCompanyAndCustomizationParameters(Company company,CustomizationParameters customizationParameters);
 	
 	@Modifying
@@ -51,7 +47,7 @@ public interface CompanyParametersRepository extends JpaRepository<CompanyParame
 			+ "WHERE cpp.COMPANY_ID = cp.COMPANY_ID AND cpp.PARAMETER_CODE = cp.PARAMETER_CODE) WHERE cp.PARAMETER_CODE = (SELECT CODE FROM XRBNPPUSR.CUSTOMIZATION_PARAMETERS "
 			+ "WHERE ID = :paramId) AND EXISTS (SELECT 1 FROM XRBNPPUSR.COMPANY_PARAMETERS_PREVIEW cpp WHERE cpp.COMPANY_ID = cp.COMPANY_ID AND cpp.PARAMETER_CODE = "
 			+ "cp.PARAMETER_CODE)", nativeQuery = true)
-	int updatePublishedFromDraft(@Param("paramId") BigInteger paramId);
+	void updatePublishedFromDraft(@Param("paramId") BigInteger paramId);
 	
 	boolean existsByCompanyAndCustomizationParameters(Company company,
             CustomizationParameters param);
@@ -64,8 +60,8 @@ public interface CompanyParametersRepository extends JpaRepository<CompanyParame
 	                                    @Param("parameterValue") String parameterValue);
 	
 	@Modifying
-	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_PARAMETERS (ID, COMPANY_ID, PARAMETER_ID, PARAMETER_VALUE) "
-	        + "SELECT XRBNPPUSR.COMPANY_PARAMETERS_SEQ.NEXTVAL, :targetCompanyId, PARAMETER_ID, PARAMETER_VALUE "
+	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_PARAMETERS (ID, COMPANY_ID, PARAMETER_CODE, PARAMETER_VALUE) "
+	        + "SELECT XRBNPPUSR.COMPANY_PARAMETERS_SEQ.NEXTVAL, :targetCompanyId, PARAMETER_CODE, PARAMETER_VALUE "
 	        + "FROM XRBNPPUSR.COMPANY_PARAMETERS "
 	        + "WHERE COMPANY_ID = :sourceCompanyId",
 	        nativeQuery = true)

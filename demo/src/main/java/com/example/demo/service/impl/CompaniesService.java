@@ -21,7 +21,6 @@ import com.example.demo.handler.CategoriesNotFoundException;
 
 import com.example.demo.handler.CompanyNotFoundException;
 import com.example.demo.handler.CompanyParametersNotFoundException;
-import com.example.demo.handler.CompanyParametersPreviewNotFoundException;
 import com.example.demo.handler.CustomizationParametersNotFoundException;
 import com.example.demo.model.Actions;
 import com.example.demo.model.CompanyDto;
@@ -332,6 +331,10 @@ public class CompaniesService implements ICompaniesService {
 		companyParametersPreviewRepository.deleteByCompanyId(companyId);
 
 		int copiedCount = companyParametersRepository.copyCompanyParameters(
+				copyExclusionRulesRequest.getSourceCompanyId(),
+	            companyId);
+		
+		companyParametersPreviewRepository.copyCompanyParametersPreview(
 				copyExclusionRulesRequest.getSourceCompanyId(),
 	            companyId);
 

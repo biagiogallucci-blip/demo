@@ -41,11 +41,6 @@ public interface CompanyCategoriesRepository extends JpaRepository<CompanyCatego
 	@Query("DELETE FROM CompanyCategories cc WHERE cc.company.idCompany = :companyId")
 	void deleteByCompanyId(@Param("companyId") BigInteger companyId);
 
-	@Query("SELECT cc FROM CompanyCategories cc WHERE cc.company.idCompany = :companyId")
-	List<CompanyCategories> findCategoriesByCompanyId(@Param("companyId") BigInteger companyId);
-
-	Optional<CompanyCategories> findByCompanyAndCategory(Company company, Categories category);
-
 	@Query(value = "SELECT comp.id_company AS companyId, comp.name_company AS companyName, comp.code_company AS companyCode, CASE WHEN EXISTS (SELECT 1 FROM "
 			+ "XRBNPPUSR.COMPANY_CATEGORIES_PREVIEW cp WHERE cp.company_id = comp.id_company AND cp.category_code = c.code) THEN 'PUBLISHED' ELSE 'DRAFT' END AS status "
 			+ "FROM XRBNPPUSR.COMPANY_CATEGORIES cc JOIN XRBNPPUSR.COMPANY comp ON comp.id_company = cc.company_id JOIN XRBNPPUSR.CATEGORIES c "
@@ -57,9 +52,6 @@ public interface CompanyCategoriesRepository extends JpaRepository<CompanyCatego
 					+ "LIKE LOWER('%' || :search || '%')) GROUP BY comp.id_company) t", nativeQuery = true)
 	Page<CompaniesByExclusionRuleProjection> getCompaniesByExclusionRuleId(@Param("ruleId") BigInteger ruleId,
 			@Param("search") String search, Pageable pageable);
-	
-	@Query("SELECT cc FROM CompanyCategories cc WHERE cc.company.idCompany = :idCompany AND cc.category.id = :categoryId") 
-	Optional<CompanyCategories> findByCompanyIdAndCategoryId(@Param("idCompany") BigInteger idCompany, @Param("categoryId") BigInteger categoryId);
 	
 	@Modifying
 	@Query(value = "INSERT INTO XRBNPPUSR.COMPANY_CATEGORIES (ID, COMPANY_ID, CATEGORY_CODE) SELECT XRBNPPUSR.COMPANY_CATEGORIES_SEQ.NEXTVAL, c.ID_COMPANY, :categoryCode FROM XRBNPPUSR.COMPANY c", nativeQuery = true)
