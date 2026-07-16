@@ -6,7 +6,7 @@ public interface CompanyProjection {
     BigInteger getIdCompany();
     String getCodeCompany();
     String getNameCompany();
-    String getStatus();
-    Boolean getHasCategory();
-    Boolean getHasParameters();
+    Boolean getHasDraft();
+    Boolean getHasExclusionRules();
+    Boolean getHasCustomParameters();
 }

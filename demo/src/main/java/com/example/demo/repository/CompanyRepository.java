@@ -17,14 +17,20 @@ import com.example.demo.projection.CompanyProjection;
 @Repository
 public interface CompanyRepository extends JpaRepository<Company, BigInteger> {
 
-	@Query(value = "SELECT c.idCompany AS idCompany, c.codeCompany AS codeCompany, c.nameCompany AS nameCompany, c.status AS status, "
-	        + "CASE WHEN EXISTS (SELECT 1 FROM CompanyCategories cc WHERE cc.company.idCompany = c.idCompany) THEN true ELSE false END AS hasCategory, "
-	        + "CASE WHEN EXISTS (SELECT 1 FROM CompanyParameters cp WHERE cp.company.idCompany = c.idCompany) THEN true ELSE false END AS hasParameters "
-	        + "FROM Company c WHERE (:search IS NULL OR :search = '' OR LOWER(c.nameCompany) LIKE LOWER(CONCAT('%', :search, '%')) OR "
-	        + "LOWER(c.codeCompany) LIKE LOWER(CONCAT('%', :search, '%')))",
-	       countQuery = "SELECT COUNT(c) FROM Company c WHERE (:search IS NULL OR :search = '' OR LOWER(c.nameCompany) LIKE LOWER(CONCAT('%', :search, '%')) OR "
-	        + "LOWER(c.codeCompany) LIKE LOWER(CONCAT('%', :search, '%')))")
-	Page<CompanyProjection> searchCompanies(@Param("search") String search, Pageable pageable);
+	@Query(value ="SELECT c.idCompany AS idCompany, c.codeCompany AS codeCompany, c.nameCompany AS nameCompany, CASE WHEN (EXISTS (SELECT 1 FROM "
+			+ "CompanyCategories cc WHERE cc.company.idCompany = c.idCompany AND NOT EXISTS (SELECT 1 FROM CompanyCategoriesPreview cp "
+			+ "WHERE cp.company.idCompany = cc.company.idCompany AND cp.category.code = cc.category.code)) OR EXISTS (SELECT 1 FROM "
+			+ "CompanyCategoriesPreview cp WHERE cp.company.idCompany = c.idCompany AND NOT EXISTS (SELECT 1 FROM CompanyCategories cc "
+			+ "WHERE cc.company.idCompany = cp.company.idCompany AND cc.category.code = cp.category.code)) OR EXISTS (SELECT 1 FROM "
+			+ "CompanyParameters p JOIN CompanyParametersPreview pp ON pp.company.idCompany = p.company.idCompany AND pp.customizationParameters.code = "
+			+ "p.customizationParameters.code WHERE p.company.idCompany = c.idCompany AND NVL(p.parameterValue, '-1') <> NVL(pp.parameterValue, '-1'))) "
+			+ "THEN true ELSE false END AS hasDraft, CASE WHEN EXISTS (SELECT 1 FROM CompanyCategories cc WHERE cc.company.idCompany = c.idCompany) "
+			+ "THEN true ELSE false END AS hasExclusionRules, CASE WHEN EXISTS (SELECT 1 FROM CompanyParameters p WHERE p.company.idCompany = c.idCompany) "
+			+ "THEN true ELSE false END AS hasCustomParameters FROM Company c WHERE (:search IS NULL OR :search = '' OR LOWER(c.nameCompany) LIKE LOWER("
+			+ "CONCAT('%',:search, '%')) OR LOWER(c.codeCompany) LIKE LOWER(CONCAT('%', :search, '%')))", 
+			countQuery = "SELECT COUNT(c) FROM Company c WHERE (:search IS NULL OR :search = '' OR LOWER(c.nameCompany) LIKE LOWER(CONCAT('%', "
+					+ ":search, '%')) OR LOWER(c.codeCompany) LIKE LOWER(CONCAT('%', :search, '%')))")
+			Page<CompanyProjection> searchCompanies(@Param("search") String search, Pageable pageable);
 
 	@Query(value = "SELECT c.ID_COMPANY as id, c.name_company AS name, c.code_company AS code, (SELECT COUNT(*) FROM XRBNPPUSR.COMPANY_CATEGORIES cc "
 			+ "WHERE cc.COMPANY_ID = c.ID_COMPANY) AS exclusionRulesCount, (SELECT COUNT(*) FROM XRBNPPUSR.COMPANY_PARAMETERS cp "

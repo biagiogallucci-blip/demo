@@ -159,11 +159,11 @@ public class CompaniesService implements ICompaniesService {
 			companyDto.setCode(company.getCodeCompany());
 
 			Configuration configuration = new Configuration();
-			configuration.setHasCustomParameters(company.getHasParameters());
-			configuration.setHasExclusionRules(company.getHasCategory());
+			configuration.setHasCustomParameters(company.getHasCustomParameters());
+			configuration.setHasExclusionRules(company.getHasExclusionRules());
 
 			companyDto.setConfiguration(configuration);
-			if (Boolean.TRUE.equals(company.getHasCategory())) {
+			if (Boolean.TRUE.equals(company.getHasDraft())) {
 				companyDto.setStatus(Constants.DRAFT);
 			} else {
 				companyDto.setStatus(Constants.PUBLISHED);
